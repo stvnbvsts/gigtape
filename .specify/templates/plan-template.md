@@ -31,7 +31,24 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] **I. Hexagonal Architecture**: Domain has zero external dependencies; adapters
+  implement port interfaces; delivery layer contains no business logic.
+- [ ] **II. Domain Integrity**: No infrastructure concerns on domain types; operations
+  touching multiple targets produce structured partial-success results.
+- [ ] **III. Simplicity Mandate**: Every added layer of complexity is justified by a
+  concrete current requirement; deployable component count stays ≤ 3 (v1).
+- [ ] **IV. Stateless by Design**: No persistent storage required; all state is
+  session-scoped and in-memory (v1).
+- [ ] **V. Resilience**: External calls handle rate limits with exponential backoff; all
+  outcomes are explicit (success / partial success / failure with human-readable reason).
+- [ ] **VI. Observability**: Structured logging at use case boundary; contextual fields
+  (operation name, entity identifiers) defined before implementation begins.
+- [ ] **VII. Testability**: All use cases, adapters, and delivery layers are testable
+  without live API calls; port interfaces enable injection of fakes/stubs.
+- [ ] **VIII. Phased Delivery**: Feature is self-contained within the current phase; no
+  future-phase features influence this design.
+- [ ] **IX. Code Quality**: Error handling is explicit throughout; naming is clear enough
+  for a developer returning after three months away.
 
 ## Project Structure
 
