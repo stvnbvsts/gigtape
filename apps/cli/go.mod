@@ -1,0 +1,19 @@
+module gigtape/cli
+
+go 1.22
+
+require (
+	gigtape/adapters/setlistfm v0.0.0
+	gigtape/adapters/spotify v0.0.0
+	gigtape/domain v0.0.0
+	gigtape/usecases v0.0.0
+	github.com/spf13/cobra v1.8.1
+	golang.org/x/oauth2 v0.20.0
+)
+
+replace (
+	gigtape/adapters/setlistfm => ../../packages/adapters/setlistfm
+	gigtape/adapters/spotify => ../../packages/adapters/spotify
+	gigtape/domain => ../../packages/domain
+	gigtape/usecases => ../../packages/usecases
+)

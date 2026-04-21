@@ -1,0 +1,33 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Go build artifacts
+*.exe
+*.test
+*.out
+gigtape
+
+# Go workspace sum
+go.work.sum
+
+# Node / Web
+apps/web/node_modules/
+apps/web/dist/
+apps/web/.vite/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Sentry
+.sentryclirc

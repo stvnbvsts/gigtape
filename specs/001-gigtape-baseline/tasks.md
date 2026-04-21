@@ -19,17 +19,17 @@ and testing of each story. No test tasks are included (not requested in spec).
 
 **Purpose**: Repo skeleton, module initialization, and tooling — must be done before any code.
 
-- [ ] T001 Create full directory skeleton at repo root: `packages/domain/`, `packages/usecases/fakes/`, `packages/adapters/setlistfm/`, `packages/adapters/spotify/`, `packages/adapters/ticketmaster/`, `packages/adapters/applemusic/`, `apps/api/handlers/`, `apps/api/middleware/`, `apps/cli/cmd/`, `apps/web/src/views/`, `apps/web/src/components/`, `apps/web/src/api/`
-- [ ] T002 [P] Create `packages/domain/go.mod` with module name `gigtape/domain`, go 1.22, and zero external dependencies
-- [ ] T003 [P] Create `packages/usecases/go.mod` with module name `gigtape/usecases`, go 1.22, and `require gigtape/domain`
-- [ ] T004 [P] Create `packages/adapters/setlistfm/go.mod` with module name `gigtape/adapters/setlistfm`, go 1.22, require `gigtape/domain` and `github.com/stretchr/testify`
-- [ ] T005 [P] Create `packages/adapters/spotify/go.mod` with module name `gigtape/adapters/spotify`, go 1.22, require `gigtape/domain` and `golang.org/x/oauth2`
-- [ ] T006 [P] Create `apps/api/go.mod` with module name `gigtape/api`, go 1.22, require `github.com/gin-gonic/gin`, `gigtape/usecases`, `gigtape/adapters/setlistfm`, `gigtape/adapters/spotify`, `golang.org/x/oauth2`, `github.com/getsentry/sentry-go`
-- [ ] T007 [P] Create `apps/cli/go.mod` with module name `gigtape/cli`, go 1.22, require `github.com/spf13/cobra`, `gigtape/usecases`, `gigtape/adapters/setlistfm`, `gigtape/adapters/spotify`, `golang.org/x/oauth2`
-- [ ] T008 Create `go.work` at repo root and run `go work use` for all 6 modules: `packages/domain`, `packages/usecases`, `packages/adapters/setlistfm`, `packages/adapters/spotify`, `apps/api`, `apps/cli` (depends on T002–T007)
-- [ ] T009 [P] Create `apps/web/package.json` with Vue 3 and Vite dependencies and `apps/web/vite.config.ts` with Vue plugin and `/api/*` proxy pointing to `http://localhost:8080`
-- [ ] T010 [P] Create `Makefile` at repo root with targets: `build-api` (go build ./apps/api), `build-cli` (go build -o gigtape ./apps/cli), `serve-web` (cd apps/web && npm run dev), `test` (go test ./packages/...), `test-integration` (RUN_INTEGRATION=true go test -tags integration ./packages/adapters/...)
-- [ ] T011 [P] Create `.env.example` at repo root with all required keys: `SETLISTFM_API_KEY`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REDIRECT_URI`, `SESSION_TTL_MINUTES`, `SENTRY_DSN`, `LOG_FORMAT`
+- [x] T001 Create full directory skeleton at repo root: `packages/domain/`, `packages/usecases/fakes/`, `packages/adapters/setlistfm/`, `packages/adapters/spotify/`, `packages/adapters/ticketmaster/`, `packages/adapters/applemusic/`, `apps/api/handlers/`, `apps/api/middleware/`, `apps/cli/cmd/`, `apps/web/src/views/`, `apps/web/src/components/`, `apps/web/src/api/`
+- [x] T002 [P] Create `packages/domain/go.mod` with module name `gigtape/domain`, go 1.22, and zero external dependencies
+- [x] T003 [P] Create `packages/usecases/go.mod` with module name `gigtape/usecases`, go 1.22, and `require gigtape/domain`
+- [x] T004 [P] Create `packages/adapters/setlistfm/go.mod` with module name `gigtape/adapters/setlistfm`, go 1.22, require `gigtape/domain` and `github.com/stretchr/testify`
+- [x] T005 [P] Create `packages/adapters/spotify/go.mod` with module name `gigtape/adapters/spotify`, go 1.22, require `gigtape/domain` and `golang.org/x/oauth2`
+- [x] T006 [P] Create `apps/api/go.mod` with module name `gigtape/api`, go 1.22, require `github.com/gin-gonic/gin`, `gigtape/usecases`, `gigtape/adapters/setlistfm`, `gigtape/adapters/spotify`, `golang.org/x/oauth2`, `github.com/getsentry/sentry-go`
+- [x] T007 [P] Create `apps/cli/go.mod` with module name `gigtape/cli`, go 1.22, require `github.com/spf13/cobra`, `gigtape/usecases`, `gigtape/adapters/setlistfm`, `gigtape/adapters/spotify`, `golang.org/x/oauth2`
+- [x] T008 Create `go.work` at repo root and run `go work use` for all 6 modules: `packages/domain`, `packages/usecases`, `packages/adapters/setlistfm`, `packages/adapters/spotify`, `apps/api`, `apps/cli` (depends on T002–T007)
+- [x] T009 [P] Create `apps/web/package.json` with Vue 3 and Vite dependencies and `apps/web/vite.config.ts` with Vue plugin and `/api/*` proxy pointing to `http://localhost:8080`
+- [x] T010 [P] Create `Makefile` at repo root with targets: `build-api` (go build ./apps/api), `build-cli` (go build -o gigtape ./apps/cli), `serve-web` (cd apps/web && npm run dev), `test` (go test ./packages/...), `test-integration` (RUN_INTEGRATION=true go test -tags integration ./packages/adapters/...)
+- [x] T011 [P] Create `.env.example` at repo root with all required keys: `SETLISTFM_API_KEY`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REDIRECT_URI`, `SESSION_TTL_MINUTES`, `SENTRY_DSN`, `LOG_FORMAT`
 
 **Checkpoint**: Run `go work sync` from repo root — should succeed with zero errors
 
