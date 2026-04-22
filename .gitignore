@@ -9,8 +9,6 @@
 *.out
 gigtape
 
-# Go workspace sum
-go.work.sum
 
 # Node / Web
 apps/web/node_modules/
