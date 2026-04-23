@@ -1,0 +1,107 @@
+package handlers
+
+import (
+	"net/http"
+	"time"
+
+	"gigtape/api/middleware"
+	"gigtape/domain"
+	"gigtape/usecases"
+
+	"github.com/gin-gonic/gin"
+)
+
+// DestinationFactory builds a PlaylistDestination scoped to the authenticated
+// user. Injected from main.go so handlers don't import spotify directly.
+type DestinationFactory func(sess middleware.Session) domain.PlaylistDestination
+
+type artistPlaylistRequest struct {
+	ArtistRef    string      `json:"artist_ref"`
+	ArtistName   string      `json:"artist_name"`
+	SetlistIndex int         `json:"setlist_index"`
+	EventDate    string      `json:"event_date"`
+	Tracks       []trackJSON `json:"tracks"`
+}
+
+type playlistResultJSON struct {
+	PlaylistURL     string      `json:"playlist_url"`
+	MatchedTracks   []trackJSON `json:"matched_tracks"`
+	UnmatchedTracks []string    `json:"unmatched_tracks"`
+	SkippedArtists  []string    `json:"skipped_artists"`
+	Error           string      `json:"error,omitempty"`
+}
+
+// CreateArtistPlaylist returns a Gin handler for POST /playlists/artist.
+func CreateArtistPlaylist(factory DestinationFactory) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req artistPlaylistRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "invalid_request",
+				"message": "Request body is not valid JSON.",
+			})
+			return
+		}
+		if req.ArtistName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "invalid_request",
+				"message": "artist_name is required.",
+			})
+			return
+		}
+
+		sessVal, ok := c.Get("session")
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   "session_not_found",
+				"message": "Session missing from request context.",
+			})
+			return
+		}
+		sess := sessVal.(middleware.Session)
+
+		date := time.Now()
+		if req.EventDate != "" {
+			if parsed, err := time.Parse("2006-01-02", req.EventDate); err == nil {
+				date = parsed
+			}
+		}
+
+		tracks := make([]domain.Track, 0, len(req.Tracks))
+		for _, t := range req.Tracks {
+			tracks = append(tracks, domain.Track{Title: t.Title, ArtistName: t.ArtistName})
+		}
+
+		uc := &usecases.CreatePlaylistFromArtist{Destination: factory(sess)}
+		result, err := uc.Execute(c.Request.Context(), req.ArtistName, date, tracks)
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{
+				"error":   "upstream_error",
+				"message": "Playlist creation failed. Please try again.",
+			})
+			return
+		}
+		c.JSON(http.StatusOK, toResultJSON(result))
+	}
+}
+
+func toResultJSON(r domain.PlaylistResult) playlistResultJSON {
+	matched := make([]trackJSON, 0, len(r.MatchedTracks))
+	for _, t := range r.MatchedTracks {
+		matched = append(matched, trackJSON{Title: t.Title, ArtistName: t.ArtistName})
+	}
+	unmatched := r.UnmatchedTracks
+	if unmatched == nil {
+		unmatched = []string{}
+	}
+	skipped := r.SkippedArtists
+	if skipped == nil {
+		skipped = []string{}
+	}
+	return playlistResultJSON{
+		PlaylistURL:     r.PlaylistURL,
+		MatchedTracks:   matched,
+		UnmatchedTracks: unmatched,
+		SkippedArtists:  skipped,
+	}
+}
