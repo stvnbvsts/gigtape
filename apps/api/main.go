@@ -21,6 +21,7 @@ func main() {
 
 	sfm := setlistfm.NewClient(os.Getenv("SETLISTFM_API_KEY"))
 	setlistProvider := setlistfm.NewSetlistProvider(sfm)
+	eventProvider := setlistfm.NewEventProvider(sfm)
 
 	previewUC := &usecases.PreviewSetlist{Provider: setlistProvider}
 
@@ -31,7 +32,7 @@ func main() {
 	}
 
 	setupAuthRoutes(router)
-	setupProtectedRoutes(router, previewUC, destFactory)
+	setupProtectedRoutes(router, previewUC, eventProvider, destFactory)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -51,6 +52,7 @@ func setupAuthRoutes(r *gin.Engine) {
 func setupProtectedRoutes(
 	r *gin.Engine,
 	preview *usecases.PreviewSetlist,
+	eventProvider domain.EventProvider,
 	destFactory handlers.DestinationFactory,
 ) {
 	protected := r.Group("/")
@@ -59,4 +61,7 @@ func setupProtectedRoutes(
 	protected.GET("/artists/search", handlers.SearchArtists(preview))
 	protected.GET("/setlists", handlers.GetSetlists(preview))
 	protected.POST("/playlists/artist", handlers.CreateArtistPlaylist(destFactory))
+
+	protected.GET("/events/search", handlers.SearchEvents(eventProvider))
+	protected.POST("/playlists/festival", handlers.CreateFestivalPlaylist(destFactory))
 }

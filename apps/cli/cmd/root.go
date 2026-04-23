@@ -32,6 +32,7 @@ func Root(d Deps) *cobra.Command {
 	root.PersistentFlags().StringVar(&envFile, "env-file", ".env", "Path to .env file with API keys")
 	root.AddCommand(authCmd())
 	root.AddCommand(artistCmd())
+	root.AddCommand(festivalCmd())
 	return root
 }
 

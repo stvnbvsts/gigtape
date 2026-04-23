@@ -57,6 +57,10 @@ function applyManualSession() {
     <p>Create a Spotify playlist from an artist's recent setlists.</p>
 
     <button type="button" @click="connectSpotify">Connect Spotify</button>
+    <p>
+      Looking for a festival?
+      <router-link to="/festival">Festival mode →</router-link>
+    </p>
 
     <details class="manual-session">
       <summary>Already authenticated? Paste session ID</summary>

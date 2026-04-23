@@ -11,6 +11,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// FestivalDestinationFactory mirrors DestinationFactory for the festival flow.
+type FestivalDestinationFactory = DestinationFactory
+
+type festivalArtistRequest struct {
+	ArtistRef  string      `json:"artist_ref"`
+	ArtistName string      `json:"artist_name"`
+	Include    bool        `json:"include"`
+	Tracks     []trackJSON `json:"tracks"`
+}
+
+type festivalPlaylistRequest struct {
+	EventName string                  `json:"event_name"`
+	EventDate string                  `json:"event_date"`
+	Mode      string                  `json:"mode"`
+	Artists   []festivalArtistRequest `json:"artists"`
+}
+
 // DestinationFactory builds a PlaylistDestination scoped to the authenticated
 // user. Injected from main.go so handlers don't import spotify directly.
 type DestinationFactory func(sess middleware.Session) domain.PlaylistDestination
@@ -82,6 +99,104 @@ func CreateArtistPlaylist(factory DestinationFactory) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusOK, toResultJSON(result))
+	}
+}
+
+// CreateFestivalPlaylist returns a Gin handler for POST /playlists/festival.
+// Returns 200 for merged mode or all-succeeded per_artist; 207 for per_artist
+// when at least one playlist succeeded and at least one failed.
+func CreateFestivalPlaylist(factory DestinationFactory) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req festivalPlaylistRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "invalid_request",
+				"message": "Request body is not valid JSON.",
+			})
+			return
+		}
+		if req.EventName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "invalid_request",
+				"message": "event_name is required.",
+			})
+			return
+		}
+		mode := req.Mode
+		if mode != usecases.ModeMerged && mode != usecases.ModePerArtist {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "invalid_request",
+				"message": "mode must be 'merged' or 'per_artist'.",
+			})
+			return
+		}
+
+		sessVal, ok := c.Get("session")
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   "session_not_found",
+				"message": "Session missing from request context.",
+			})
+			return
+		}
+		sess := sessVal.(middleware.Session)
+
+		eventDate := time.Now()
+		if req.EventDate != "" {
+			if parsed, err := time.Parse("2006-01-02", req.EventDate); err == nil {
+				eventDate = parsed
+			}
+		}
+
+		entries := make([]usecases.ArtistEntry, 0, len(req.Artists))
+		for _, a := range req.Artists {
+			tracks := make([]domain.Track, 0, len(a.Tracks))
+			for _, t := range a.Tracks {
+				tracks = append(tracks, domain.Track{Title: t.Title, ArtistName: t.ArtistName})
+			}
+			entries = append(entries, usecases.ArtistEntry{
+				ArtistRef:  a.ArtistRef,
+				ArtistName: a.ArtistName,
+				Include:    a.Include,
+				Tracks:     tracks,
+			})
+		}
+
+		uc := &usecases.CreatePlaylistFromFestival{Destination: factory(sess)}
+		results, err := uc.Execute(c.Request.Context(), usecases.FestivalRequest{
+			EventName: req.EventName,
+			EventDate: eventDate,
+			Mode:      mode,
+			Artists:   entries,
+		})
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{
+				"error":   "upstream_error",
+				"message": "Festival playlist creation failed. Please try again.",
+			})
+			return
+		}
+
+		out := make([]playlistResultJSON, 0, len(results))
+		succeeded, failed := 0, 0
+		for _, r := range results {
+			entry := toResultJSON(r)
+			if entry.PlaylistURL != "" {
+				succeeded++
+			} else {
+				failed++
+				if entry.Error == "" {
+					entry.Error = "No tracks available or playlist creation failed."
+				}
+			}
+			out = append(out, entry)
+		}
+
+		status := http.StatusOK
+		if mode == usecases.ModePerArtist && succeeded > 0 && failed > 0 {
+			status = http.StatusMultiStatus
+		}
+		c.JSON(status, gin.H{"results": out})
 	}
 }
 

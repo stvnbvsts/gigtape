@@ -15,21 +15,22 @@ Progress against [specs/001-gigtape-baseline/tasks.md](specs/001-gigtape-baselin
 |---|---|---|
 | 1 | Setup (workspace, modules, scaffolds) | ✅ Done |
 | 2 | Foundational (domain, session, OAuth shell) | ✅ Done |
-| 3 | **User Story 1 — Single-artist playlist (MVP)** | ✅ Done |
-| 4 | User Story 2 — Festival playlist | ⏳ Not started |
+| 3 | User Story 1 — Single-artist playlist (MVP) | ✅ Done |
+| 4 | **User Story 2 — Festival playlist** | ✅ Done |
 | 5 | Polish (Sentry, rate limit, audit) | ⏳ Not started |
 
 What you can do today:
 
 - Authenticate with Spotify (PKCE OAuth)
-- Search for an artist by name
-- Fetch recent setlists for that artist from setlist.fm
-- Preview, edit (remove / manually add) the track list
-- Create a private Spotify playlist and receive a direct link
+- **Single-artist flow** — search → preview/edit setlist → create private playlist
+- **Festival flow** — search festival → review lineup with per-artist song counts
+  → deselect artists / add manual ones → choose **merged** (one playlist) or
+  **per-artist** (one playlist per artist) mode → receive Spotify links
 - See which tracks Spotify couldn't match (never silently dropped)
+- See which artists were skipped (deselected or no setlist data)
 
-What is **not** available yet: festival mode (`gigtape festival`), rate limiting
-middleware, Sentry integration.
+What is **not** available yet: rate limiting middleware, Sentry integration,
+per-session error-path audit (Phase 5).
 
 ## Prerequisites
 
@@ -129,7 +130,7 @@ npm run dev
 # /api/* is proxied to http://localhost:8080
 ```
 
-## How to test Phase 3 — single-artist playlist
+## How to test Phase 3 & 4 — single-artist and festival playlists
 
 ### Option A — CLI (fastest)
 
@@ -178,6 +179,38 @@ This is the flow validated by Phase 3's checkpoint.
   Spotify" — never silently dropped.
 - If the most recent setlist has fewer than 6 songs, you'll see a warning.
 
+Festival flow (CLI):
+
+```bash
+./gigtape festival "Glastonbury 2024"
+#
+# Expected interaction:
+#   Multiple events found:
+#     1. Glastonbury Festival — 2024-06-28 (Pilton, United Kingdom, 40 artists)
+#     ...
+#   Pick number: 1
+#
+#   Lineup (40 artists found, lineup may be incomplete):
+#      1. Coldplay (22 songs)
+#           attribution: setlist.fm • https://...
+#      2. SZA (18 songs)
+#           attribution: setlist.fm • https://...
+#      3. Some Opener (no setlist found)
+#     ...
+#
+#   Deselect artists by number (comma-separated), or Enter to include all: 3
+#   Mode [merged/per-artist]: merged
+#
+#   ✓ Playlist #1: https://open.spotify.com/playlist/...
+#     40 songs added
+#     Skipped artists: Some Opener
+```
+
+Per-artist mode produces one playlist per included artist and prints each URL.
+Artists with no setlist (or explicitly deselected) are listed under "Skipped
+artists". FR-013 compliance: each artist's `SourceAttribution` is printed next
+to its song count.
+
 ### Option B — API directly
 
 The REST contract is in [specs/001-gigtape-baseline/contracts/api.md](specs/001-gigtape-baseline/contracts/api.md).
@@ -220,6 +253,33 @@ curl -s -X POST http://localhost:8080/playlists/artist \
      }' | jq
 ```
 
+Festival flow:
+
+```bash
+# 1. Search festivals (the query may include a year — it's parsed out and
+#    passed to setlist.fm's `year` parameter; the remainder goes to venueName).
+curl -s "http://localhost:8080/events/search?q=Glastonbury%202024" \
+     -H "X-Session-ID: $SESSION_ID" | jq
+
+# 2. Create merged festival playlist
+curl -s -X POST http://localhost:8080/playlists/festival \
+     -H "X-Session-ID: $SESSION_ID" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "event_name":"Glastonbury 2024",
+       "event_date":"2024-06-28",
+       "mode":"merged",
+       "artists":[
+         {"artist_ref":"...mbid-coldplay...","artist_name":"Coldplay","include":true,
+          "tracks":[{"title":"Yellow","artist_name":"Coldplay"}]},
+         {"artist_ref":"...mbid-sza...","artist_name":"SZA","include":false,"tracks":[]}
+       ]
+     }' | jq
+#
+# Per-artist mode: set "mode":"per_artist". Response returns HTTP 207 when at
+# least one playlist in the batch succeeded and at least one failed.
+```
+
 Error shapes are documented in `contracts/api.md`. 401 codes:
 `session_not_found` and `session_expired`.
 
@@ -241,18 +301,27 @@ The SPA covers the same flow.
 6. Result view shows the Spotify link, matched count, and an explicit
    "Not found on Spotify" list.
 
-## Endpoints available in Phase 3
+Festival flow (web): from the home page click **"Festival mode →"**, or go
+directly to `http://localhost:5173/festival`. Search → pick an event → review
+the lineup (checkboxes per artist, song count shown, "no setlist found"
+indicator) → add manual artists if needed → **Continue** → choose **merged**
+or **per-artist** mode → **Create Playlists**. Result view shows one card per
+created playlist plus a "Skipped artists" panel.
+
+## Endpoints available
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/auth/login` | Start PKCE OAuth; returns `{ auth_url }` |
 | GET | `/auth/callback` | OAuth callback; returns `{ session_id }` |
-| GET | `/artists/search?q=` | Disambiguation candidates |
+| GET | `/artists/search?q=` | Artist disambiguation candidates |
 | GET | `/setlists?artist_ref=&artist_name=` | Recent setlists (desc by date) |
 | POST | `/playlists/artist` | Create playlist from artist's setlist |
+| GET | `/events/search?q=` | Festival/event search (venueName + optional year) |
+| POST | `/playlists/festival` | Create merged or per-artist festival playlist(s) |
 
-Festival routes (`/events/search`, `/playlists/festival`) are **not** wired
-yet — Phase 4.
+HTTP 207 Multi-Status is returned by `/playlists/festival` in `per_artist`
+mode when at least one playlist succeeded and at least one failed.
 
 ## Tests
 
@@ -305,7 +374,20 @@ The domain package has zero external imports — the Go compiler enforces this.
 
 ## Next
 
-- **Phase 4** (US2): `gigtape festival`, `/events/search`,
-  `/playlists/festival`, merged + per-artist modes.
-- **Phase 5**: Sentry, per-session rate limit, error-path audit, full
+- **Phase 5**: Sentry SDK in API + CLI, per-session rate-limit middleware,
+  `slog.Error` audit pass across use cases + adapters, full
   `quickstart.md` validation run.
+
+## Known caveats (Phase 4)
+
+- setlist.fm has no `eventName` parameter on `/search/setlists`. The event
+  provider parses a year out of the query (e.g. `"Glastonbury 2024"` →
+  `venueName=Glastonbury`, `year=2024`) and groups returned setlists by
+  `(venue, eventDate)`. Festival searches that rely on curated event names
+  rather than venue names may return fewer results than expected.
+- `lineup_complete` is always `false` — setlist.fm doesn't surface ground
+  truth for full lineups; the UI treats every lineup as potentially partial
+  and allows manual artist additions.
+- Per-artist festival mode makes one Spotify request per artist with no
+  parallelism; a 20-artist festival takes proportionally longer. Rate-limit
+  handling (429 + `Retry-After`) is in place.

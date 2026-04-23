@@ -36,6 +36,32 @@ export interface ArtistPlaylistRequest {
   tracks: Track[]
 }
 
+export interface Event {
+  name: string
+  date: string
+  location: string
+  artists: Artist[]
+  lineup_complete: boolean
+}
+
+export interface FestivalArtistEntry {
+  artist_ref: string
+  artist_name: string
+  include: boolean
+  tracks: Track[]
+}
+
+export interface FestivalPlaylistRequest {
+  event_name: string
+  event_date: string
+  mode: 'merged' | 'per_artist'
+  artists: FestivalArtistEntry[]
+}
+
+export interface FestivalResultEntry extends PlaylistResult {
+  error?: string
+}
+
 let sessionId = ''
 
 export function setSessionId(id: string) {
@@ -93,6 +119,19 @@ export function getSetlists(
 
 export function createArtistPlaylist(body: ArtistPlaylistRequest): Promise<PlaylistResult> {
   return request('/playlists/artist', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+export function searchEvents(q: string): Promise<{ events: Event[] }> {
+  return request(`/events/search?q=${encodeURIComponent(q)}`)
+}
+
+export function createFestivalPlaylist(
+  body: FestivalPlaylistRequest,
+): Promise<{ results: FestivalResultEntry[] }> {
+  return request('/playlists/festival', {
     method: 'POST',
     body: JSON.stringify(body),
   })

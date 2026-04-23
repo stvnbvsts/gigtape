@@ -8,6 +8,8 @@
 *.test
 *.out
 gigtape
+/cli
+/api
 
 
 # Node / Web

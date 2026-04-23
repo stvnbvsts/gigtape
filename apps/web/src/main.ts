@@ -5,6 +5,9 @@ import App from './App.vue'
 import ArtistSearchView from './views/ArtistSearchView.vue'
 import SetlistPreviewView from './views/SetlistPreviewView.vue'
 import PlaylistResultView from './views/PlaylistResultView.vue'
+import FestivalSearchView from './views/FestivalSearchView.vue'
+import FestivalModeView from './views/FestivalModeView.vue'
+import FestivalResultView from './views/FestivalResultView.vue'
 import { setSessionId } from './api/client'
 
 // When /auth/callback redirects back with ?session_id=..., lift the value out of
@@ -23,6 +26,9 @@ const router = createRouter({
     { path: '/', component: ArtistSearchView },
     { path: '/setlist', component: SetlistPreviewView },
     { path: '/result', component: PlaylistResultView },
+    { path: '/festival', component: FestivalSearchView },
+    { path: '/festival/mode', component: FestivalModeView },
+    { path: '/festival/result', component: FestivalResultView },
   ],
 })
 
