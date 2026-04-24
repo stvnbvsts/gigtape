@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
+	"net/url"
 	"os"
 	"sync"
 
@@ -42,26 +43,24 @@ func AuthLogin(c *gin.Context) {
 }
 
 // AuthCallback handles GET /auth/callback.
-// Validates the OAuth state, exchanges the code for a token, fetches the Spotify
-// user ID, and returns a new session ID.
+//
+// When WEB_REDIRECT_URL is set, the browser is redirected to the SPA with
+// ?session_id=<uuid> on success or ?oauth_error=<code> on failure — this lets
+// users land back in the app in one hop. When WEB_REDIRECT_URL is empty, the
+// handler keeps the JSON response shape documented in contracts/api.md so
+// curl-driven flows still work.
 func AuthCallback(c *gin.Context) {
 	code := c.Query("code")
 	state := c.Query("state")
 
 	if code == "" || state == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "oauth_error",
-			"message": "OAuth handshake failed. Please try connecting your Spotify account again.",
-		})
+		respondOAuthError(c, "oauth_error", "OAuth handshake failed. Please try connecting your Spotify account again.")
 		return
 	}
 
 	v, ok := pendingAuth.LoadAndDelete(state)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "oauth_error",
-			"message": "OAuth handshake failed. Please try connecting your Spotify account again.",
-		})
+		respondOAuthError(c, "oauth_error", "OAuth handshake failed. Please try connecting your Spotify account again.")
 		return
 	}
 	verifier := v.(string)
@@ -74,25 +73,60 @@ func AuthCallback(c *gin.Context) {
 		verifier,
 	)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "oauth_error",
-			"message": "OAuth handshake failed. Please try connecting your Spotify account again.",
-		})
+		respondOAuthError(c, "oauth_error", "OAuth handshake failed. Please try connecting your Spotify account again.")
 		return
 	}
 
 	httpClient := spotify.NewClient(c.Request.Context(), token, os.Getenv("SPOTIFY_CLIENT_ID"))
 	userID, err := spotify.GetCurrentUserID(c.Request.Context(), httpClient)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "oauth_error",
-			"message": "Could not retrieve your Spotify profile. Please try again.",
-		})
+		respondOAuthError(c, "profile_error", "Could not retrieve your Spotify profile. Please try again.")
 		return
 	}
 
 	sess := middleware.NewSession(token, userID)
+
+	if redirect := buildSPARedirect(os.Getenv("WEB_REDIRECT_URL"), map[string]string{
+		"session_id": sess.ID,
+	}); redirect != "" {
+		c.Redirect(http.StatusFound, redirect)
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"session_id": sess.ID})
+}
+
+// respondOAuthError emits a 302 to the SPA with ?oauth_error=<code> when
+// WEB_REDIRECT_URL is set, otherwise a 400 JSON error.
+func respondOAuthError(c *gin.Context, code, message string) {
+	if redirect := buildSPARedirect(os.Getenv("WEB_REDIRECT_URL"), map[string]string{
+		"oauth_error": code,
+	}); redirect != "" {
+		c.Redirect(http.StatusFound, redirect)
+		return
+	}
+	c.JSON(http.StatusBadRequest, gin.H{"error": code, "message": message})
+}
+
+// buildSPARedirect validates base (must be http/https with a host) and returns
+// base with the given query params merged in. Returns "" when base is empty or
+// fails validation — the caller then falls back to JSON.
+func buildSPARedirect(base string, params map[string]string) string {
+	if base == "" {
+		return ""
+	}
+	u, err := url.Parse(base)
+	if err != nil || u.Host == "" {
+		return ""
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return ""
+	}
+	q := u.Query()
+	for k, v := range params {
+		q.Set(k, v)
+	}
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 func randomHex() string {

@@ -46,10 +46,14 @@ func SearchEvents(provider domain.EventProvider) gin.HandlerFunc {
 				})
 			}
 			out = append(out, eventJSON{
-				Name:           e.Name,
-				Date:           e.Date.Format("2006-01-02"),
-				Location:       e.Location,
-				Artists:        artists,
+				Name:     e.Name,
+				Date:     e.Date.Format("2006-01-02"),
+				Location: e.Location,
+				Artists:  artists,
+				// setlist.fm exposes no "complete lineup" signal, so this
+				// field is always false. Clients must treat every lineup as
+				// potentially partial and offer manual additions. See README
+				// "Known caveats" for rationale.
 				LineupComplete: false,
 			})
 		}

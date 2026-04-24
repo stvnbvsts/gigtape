@@ -19,9 +19,12 @@ import (
 const (
 	spotifyAuthURL  = "https://accounts.spotify.com/authorize"
 	spotifyTokenURL = "https://accounts.spotify.com/api/token"
-	spotifyAPIBase  = "https://api.spotify.com/v1"
 	scopes          = "playlist-modify-private playlist-read-private"
 )
+
+// spotifyAPIBase is the root of the Spotify Web API. Declared as a var (not a
+// const) so tests can redirect requests to an httptest server.
+var spotifyAPIBase = "https://api.spotify.com/v1"
 
 // PKCEChallenge holds the verifier and derived challenge for an OAuth PKCE flow.
 type PKCEChallenge struct {

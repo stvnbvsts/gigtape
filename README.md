@@ -78,6 +78,7 @@ SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret       # unused by PKCE, keep for future
 SPOTIFY_REDIRECT_URI=http://localhost:8080/auth/callback
 SESSION_TTL_MINUTES=60
+WEB_REDIRECT_URL=http://localhost:5173/                 # SPA origin; leave empty for JSON callback
 SENTRY_DSN=                                             # leave empty to disable Sentry
 SENTRY_ENVIRONMENT=development                          # optional; defaults to "development"
 SENTRY_RELEASE=gigtape@dev                              # optional; defaults to gigtape@dev
@@ -307,16 +308,19 @@ The SPA covers the same flow.
 1. `npm run dev` in `apps/web` (and `go run ./apps/api` in another terminal).
 2. Open `http://localhost:5173`.
 3. Click **Connect Spotify** → complete consent in browser.
-4. Spotify redirects to the API's `/auth/callback`, which currently returns
-   `{"session_id":"<uuid>"}` as JSON. **Phase 3 shim:** copy the UUID, return
-   to `http://localhost:5173`, expand *"Already authenticated? Paste session
-   ID"*, paste it, click **Use session**. (A backend-to-SPA redirect with
-   `?session_id=` is already supported — it just isn't emitted by the API yet.
-   Slotted for a later phase.)
+4. With `WEB_REDIRECT_URL=http://localhost:5173/` set (default in
+   `.env.example`), the API's `/auth/callback` redirects your browser back to
+   the SPA with `?session_id=…` — the session is captured automatically and
+   the query string is scrubbed from the URL. Without `WEB_REDIRECT_URL`, the
+   callback returns `{"session_id": "…"}` as JSON; expand the
+   **Troubleshooting** block on the home page and paste the UUID to continue.
 5. Search an artist → pick a disambiguation → preview the setlist (with
    attribution) → remove tracks or add manual ones → **Create Playlist**.
 6. Result view shows the Spotify link, matched count, and an explicit
    "Not found on Spotify" list.
+
+If OAuth fails, the callback redirects with `?oauth_error=<code>` and the home
+page shows a banner explaining the failure.
 
 Festival flow (web): from the home page click **"Festival mode →"**, or go
 directly to `http://localhost:5173/festival`. Search → pick an event → review
@@ -398,10 +402,14 @@ Discord surfaces, `DiscoverUpcomingConcerts` use case) — not scheduled yet.
 
 ## Known caveats
 
-- The session-ID handoff from API callback to SPA is still manual — backend
-  `/auth/callback` returns JSON; the SPA offers a "Paste session ID" fallback.
-  A redirect-to-SPA with `?session_id=` is wired in the client but not yet
-  emitted by the API handler.
+- **`lineup_complete` is always `false`.** setlist.fm does not expose a
+  "complete lineup" signal, so the event provider cannot tell you whether the
+  artists it returned are the full bill or a subset. This is a data-source
+  limitation, not a bug. The UI treats every lineup as potentially partial and
+  always allows manual artist additions; no weak heuristic is applied because
+  false confidence would be worse than the current "always maybe partial"
+  posture. If you want authoritative lineup data, a Ticketmaster adapter is
+  tracked as Phase 2 in `plan.md`.
 - setlist.fm has no `eventName` parameter on `/search/setlists`. The event
   provider parses a year out of the query (e.g. `"Glastonbury 2024"` →
   `venueName=Glastonbury`, `year=2024`) and groups returned setlists by

@@ -1,16 +1,35 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getAuthUrl, getSessionId, searchArtists, setSessionId, type Artist } from '../api/client'
+import {
+  consumeOAuthError,
+  getAuthUrl,
+  getSessionId,
+  searchArtists,
+  setSessionId,
+  type Artist,
+} from '../api/client'
 
 const query = ref('')
 const artists = ref<Artist[]>([])
 const loading = ref(false)
 const error = ref('')
+const oauthBanner = ref('')
 const manualSession = ref('')
 const router = useRouter()
 
+onMounted(() => {
+  const code = consumeOAuthError()
+  if (code) {
+    oauthBanner.value =
+      code === 'profile_error'
+        ? 'We could not retrieve your Spotify profile. Please try again.'
+        : 'OAuth handshake failed. Please try connecting your Spotify account again.'
+  }
+})
+
 async function connectSpotify() {
+  oauthBanner.value = ''
   try {
     const { auth_url } = await getAuthUrl()
     window.location.href = auth_url
@@ -56,17 +75,13 @@ function applyManualSession() {
     <h1>Gigtape</h1>
     <p>Create a Spotify playlist from an artist's recent setlists.</p>
 
+    <p v-if="oauthBanner" class="banner" role="alert">{{ oauthBanner }}</p>
+
     <button type="button" @click="connectSpotify">Connect Spotify</button>
     <p>
       Looking for a festival?
       <router-link to="/festival">Festival mode →</router-link>
     </p>
-
-    <details class="manual-session">
-      <summary>Already authenticated? Paste session ID</summary>
-      <input v-model="manualSession" placeholder="session id from /auth/callback" />
-      <button type="button" @click="applyManualSession">Use session</button>
-    </details>
 
     <form @submit.prevent="onSearch">
       <input v-model="query" placeholder="Artist name" />
@@ -84,6 +99,18 @@ function applyManualSession() {
       </li>
     </ul>
     <p v-else-if="!loading && query">No artists found.</p>
+
+    <details class="troubleshooting">
+      <summary>Troubleshooting</summary>
+      <p>
+        If the backend is running without <code>WEB_REDIRECT_URL</code> set,
+        <code>/auth/callback</code> returns a JSON
+        <code>{ "session_id": "…" }</code> page instead of redirecting here.
+        Paste the UUID below to resume.
+      </p>
+      <input v-model="manualSession" placeholder="session id" />
+      <button type="button" @click="applyManualSession">Use session</button>
+    </details>
   </section>
 </template>
 
@@ -93,10 +120,19 @@ function applyManualSession() {
   margin: 2rem auto;
   font-family: system-ui, sans-serif;
 }
+.banner {
+  background: #fff3f3;
+  border: 1px solid #e0a0a0;
+  color: #900;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+}
 .error {
   color: #b00;
 }
-.manual-session {
-  margin: 0.5rem 0;
+.troubleshooting {
+  margin-top: 2rem;
+  font-size: 0.9em;
+  color: #555;
 }
 </style>

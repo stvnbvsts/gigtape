@@ -13,23 +13,33 @@ import (
 	"time"
 )
 
-const baseURL = "https://api.setlist.fm/rest/1.0"
+const defaultBaseURL = "https://api.setlist.fm/rest/1.0"
 
 // Client is a rate-limited HTTP client for the setlist.fm API.
 // It enforces a minimum 500ms gap between requests and retries on 429 responses
 // with exponential backoff (1s → 2s → 4s → 8s, max 3 retries).
+//
+// baseURL, minGap and initialBackoff are overridable (package-private) so
+// tests can point at a local httptest server and shrink the waits to keep the
+// suite fast. Production construction via NewClient uses the defaults.
 type Client struct {
-	apiKey     string
-	httpClient *http.Client
-	mu         sync.Mutex
-	lastReq    time.Time
+	apiKey         string
+	httpClient     *http.Client
+	baseURL        string
+	minGap         time.Duration
+	initialBackoff time.Duration
+	mu             sync.Mutex
+	lastReq        time.Time
 }
 
 // NewClient creates a Client with the given setlist.fm API key.
 func NewClient(apiKey string) *Client {
 	return &Client{
-		apiKey:     apiKey,
-		httpClient: &http.Client{Timeout: 15 * time.Second},
+		apiKey:         apiKey,
+		httpClient:     &http.Client{Timeout: 15 * time.Second},
+		baseURL:        defaultBaseURL,
+		minGap:         500 * time.Millisecond,
+		initialBackoff: time.Second,
 	}
 }
 
@@ -38,7 +48,7 @@ func NewClient(apiKey string) *Client {
 func (c *Client) do(ctx context.Context, path string, params url.Values) ([]byte, error) {
 	c.rateWait()
 
-	u := baseURL + path
+	u := c.baseURL + path
 	if len(params) > 0 {
 		u += "?" + params.Encode()
 	}
@@ -50,7 +60,7 @@ func (c *Client) do(ctx context.Context, path string, params url.Values) ([]byte
 	req.Header.Set("x-api-key", c.apiKey)
 	req.Header.Set("Accept", "application/json")
 
-	backoff := time.Second
+	backoff := c.initialBackoff
 	for attempt := 0; attempt <= 3; attempt++ {
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
@@ -84,12 +94,12 @@ func (c *Client) do(ctx context.Context, path string, params url.Values) ([]byte
 	return nil, fmt.Errorf("setlist.fm: exhausted retries")
 }
 
-// rateWait sleeps if necessary to maintain the 500ms minimum gap between requests.
+// rateWait sleeps if necessary to maintain the minimum gap between requests.
 func (c *Client) rateWait() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if elapsed := time.Since(c.lastReq); elapsed < 500*time.Millisecond {
-		time.Sleep(500*time.Millisecond - elapsed)
+	if elapsed := time.Since(c.lastReq); elapsed < c.minGap {
+		time.Sleep(c.minGap - elapsed)
 	}
 	c.lastReq = time.Now()
 }

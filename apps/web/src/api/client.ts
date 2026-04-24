@@ -87,6 +87,22 @@ export function clearSessionId() {
   } catch {}
 }
 
+// OAuth error banner state. The /auth/callback redirect appends
+// ?oauth_error=<code> when the handshake fails and WEB_REDIRECT_URL is set;
+// main.ts lifts it here so views can render a banner without plumbing it
+// through the router.
+let oauthError = ''
+
+export function setOAuthError(code: string) {
+  oauthError = code
+}
+
+export function consumeOAuthError(): string {
+  const e = oauthError
+  oauthError = ''
+  return e
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers || {})
   if (sessionId || getSessionId()) headers.set('X-Session-ID', getSessionId())
