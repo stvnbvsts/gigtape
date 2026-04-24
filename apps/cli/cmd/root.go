@@ -4,8 +4,11 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
+
+	"gigtape/usecases"
 
 	"github.com/spf13/cobra"
 )
@@ -15,9 +18,11 @@ var envFile string
 // Deps holds collaborators injected from main.go. Each command reads from this
 // struct so the composition root stays in main.
 type Deps struct {
-	SetlistfmAPIKey     string
-	SpotifyClientID     string
-	SpotifyRedirectURI  string
+	SetlistfmAPIKey    string
+	SpotifyClientID    string
+	SpotifyRedirectURI string
+	Reporter           usecases.ErrorReporter
+	Logger             *slog.Logger
 }
 
 var deps Deps

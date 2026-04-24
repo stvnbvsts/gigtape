@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -49,7 +50,7 @@ type playlistResultJSON struct {
 }
 
 // CreateArtistPlaylist returns a Gin handler for POST /playlists/artist.
-func CreateArtistPlaylist(factory DestinationFactory) gin.HandlerFunc {
+func CreateArtistPlaylist(factory DestinationFactory, reporter usecases.ErrorReporter, logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req artistPlaylistRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -89,7 +90,11 @@ func CreateArtistPlaylist(factory DestinationFactory) gin.HandlerFunc {
 			tracks = append(tracks, domain.Track{Title: t.Title, ArtistName: t.ArtistName})
 		}
 
-		uc := &usecases.CreatePlaylistFromArtist{Destination: factory(sess)}
+		uc := &usecases.CreatePlaylistFromArtist{
+			Destination: factory(sess),
+			Reporter:    reporter,
+			Logger:      logger.With(slog.String("session_id", sess.ID)),
+		}
 		result, err := uc.Execute(c.Request.Context(), req.ArtistName, date, tracks)
 		if err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{
@@ -105,7 +110,7 @@ func CreateArtistPlaylist(factory DestinationFactory) gin.HandlerFunc {
 // CreateFestivalPlaylist returns a Gin handler for POST /playlists/festival.
 // Returns 200 for merged mode or all-succeeded per_artist; 207 for per_artist
 // when at least one playlist succeeded and at least one failed.
-func CreateFestivalPlaylist(factory DestinationFactory) gin.HandlerFunc {
+func CreateFestivalPlaylist(factory DestinationFactory, reporter usecases.ErrorReporter, logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req festivalPlaylistRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -162,7 +167,11 @@ func CreateFestivalPlaylist(factory DestinationFactory) gin.HandlerFunc {
 			})
 		}
 
-		uc := &usecases.CreatePlaylistFromFestival{Destination: factory(sess)}
+		uc := &usecases.CreatePlaylistFromFestival{
+			Destination: factory(sess),
+			Reporter:    reporter,
+			Logger:      logger.With(slog.String("session_id", sess.ID)),
+		}
 		results, err := uc.Execute(c.Request.Context(), usecases.FestivalRequest{
 			EventName: req.EventName,
 			EventDate: eventDate,

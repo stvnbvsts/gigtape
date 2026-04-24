@@ -58,7 +58,10 @@ func (d *PlaylistDestination) CreatePlaylist(ctx context.Context, playlist domai
 	defer createResp.Body.Close()
 
 	if createResp.StatusCode != http.StatusCreated && createResp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(createResp.Body)
+		body, readErr := io.ReadAll(createResp.Body)
+		if readErr != nil {
+			return result, fmt.Errorf("spotify: create playlist: status %d (response body unreadable: %w)", createResp.StatusCode, readErr)
+		}
 		return result, fmt.Errorf("spotify: create playlist: status %d: %s", createResp.StatusCode, body)
 	}
 
@@ -118,7 +121,10 @@ func (d *PlaylistDestination) addTracks(ctx context.Context, playlistID string, 
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(resp.Body)
+		b, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return fmt.Errorf("spotify: add tracks: status %d (response body unreadable: %w)", resp.StatusCode, readErr)
+		}
 		return fmt.Errorf("spotify: add tracks: status %d: %s", resp.StatusCode, b)
 	}
 	return nil

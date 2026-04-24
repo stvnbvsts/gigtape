@@ -16,10 +16,10 @@ Progress against [specs/001-gigtape-baseline/tasks.md](specs/001-gigtape-baselin
 | 1 | Setup (workspace, modules, scaffolds) | ✅ Done |
 | 2 | Foundational (domain, session, OAuth shell) | ✅ Done |
 | 3 | User Story 1 — Single-artist playlist (MVP) | ✅ Done |
-| 4 | **User Story 2 — Festival playlist** | ✅ Done |
-| 5 | Polish (Sentry, rate limit, audit) | ⏳ Not started |
+| 4 | User Story 2 — Festival playlist | ✅ Done |
+| 5 | **Polish (Sentry, rate limit, audit)** | ✅ Done |
 
-What you can do today:
+Phase 1 of the baseline is complete. What you can do today:
 
 - Authenticate with Spotify (PKCE OAuth)
 - **Single-artist flow** — search → preview/edit setlist → create private playlist
@@ -29,8 +29,23 @@ What you can do today:
 - See which tracks Spotify couldn't match (never silently dropped)
 - See which artists were skipped (deselected or no setlist data)
 
-What is **not** available yet: rate limiting middleware, Sentry integration,
-per-session error-path audit (Phase 5).
+Phase 5 added:
+
+- **Sentry** SDK initialization in API + CLI; unexpected adapter errors are
+  captured at the use-case boundary through an `ErrorReporter` port (the
+  usecases package has zero Sentry imports). Set `SENTRY_DSN` to enable; leave
+  empty to disable without code changes.
+- **Per-session rate limit** on all protected API routes — token bucket at
+  ~2 req/s, burst 4, keyed by `X-Session-ID`. 429 `rate_limited` with a
+  `Retry-After: 1` header when the bucket is empty.
+- **Structured error logging** at use-case boundaries with `slog.Error`
+  (fields: `use_case`, `artist`/`event`, `session_id` on API, `error`).
+- **Error-path audit**: every `_` discard of an error in the adapters was
+  either replaced with explicit handling or annotated with a `slog.Warn`
+  fallback (e.g. unparseable setlist.fm dates).
+- **Attribution audit**: `SourceAttribution` is rendered everywhere setlist
+  data appears — CLI (`artist`, `festival`), web (SetlistPreview, per-row
+  in FestivalSearch).
 
 ## Prerequisites
 
@@ -63,7 +78,9 @@ SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret       # unused by PKCE, keep for future
 SPOTIFY_REDIRECT_URI=http://localhost:8080/auth/callback
 SESSION_TTL_MINUTES=60
-SENTRY_DSN=
+SENTRY_DSN=                                             # leave empty to disable Sentry
+SENTRY_ENVIRONMENT=development                          # optional; defaults to "development"
+SENTRY_RELEASE=gigtape@dev                              # optional; defaults to gigtape@dev
 LOG_FORMAT=text                                         # or "json"
 ```
 
@@ -369,17 +386,22 @@ The domain package has zero external imports — the Go compiler enforces this.
 | CLI browser: OAuth redirect error | Loopback URI not allowed | Add `http://127.0.0.1:<port>/callback` to Spotify app (the exact port is printed when `gigtape auth` starts) |
 | Playlist not created | Missing OAuth scope | Verify `playlist-modify-private` in the Spotify app config |
 | Web: "Please connect Spotify first" | Session ID not captured | Use the "Paste session ID" shim (see Option C, step 4) |
-| 429 from setlist.fm / Spotify | Rate limit | Backoff is implemented; just retry after a few seconds |
+| 429 from setlist.fm / Spotify | Rate limit (upstream) | Backoff is implemented; retry after a few seconds |
+| 429 `rate_limited` from the Gigtape API | Per-session rate limit (~2 req/s) | Honour the `Retry-After` header, or space requests |
 | Setlist has 0 songs / "No setlists found" | Artist has no recent shows on setlist.fm | Try a more active artist; manual track entry works in the web UI |
 
 ## Next
 
-- **Phase 5**: Sentry SDK in API + CLI, per-session rate-limit middleware,
-  `slog.Error` audit pass across use cases + adapters, full
-  `quickstart.md` validation run.
+Phase 1 of the baseline is complete. Remaining work lives in `plan.md` as
+Phase 2 / 3 placeholders (Ticketmaster + Apple Music adapters, Telegram +
+Discord surfaces, `DiscoverUpcomingConcerts` use case) — not scheduled yet.
 
-## Known caveats (Phase 4)
+## Known caveats
 
+- The session-ID handoff from API callback to SPA is still manual — backend
+  `/auth/callback` returns JSON; the SPA offers a "Paste session ID" fallback.
+  A redirect-to-SPA with `?session_id=` is wired in the client but not yet
+  emitted by the API handler.
 - setlist.fm has no `eventName` parameter on `/search/setlists`. The event
   provider parses a year out of the query (e.g. `"Glastonbury 2024"` →
   `venueName=Glastonbury`, `year=2024`) and groups returned setlists by

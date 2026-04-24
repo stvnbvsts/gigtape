@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"gigtape/domain"
@@ -34,6 +35,8 @@ type ArtistEntry struct {
 // either merged or per-artist mode.
 type CreatePlaylistFromFestival struct {
 	Destination domain.PlaylistDestination
+	Reporter    ErrorReporter
+	Logger      *slog.Logger
 }
 
 // Execute creates the playlist(s) for the given festival request.
@@ -93,6 +96,12 @@ func (u *CreatePlaylistFromFestival) executeMerged(
 	result, err := u.Destination.CreatePlaylist(ctx, playlist)
 	normalize(&result)
 	if err != nil {
+		defaultLogger(u.Logger).Error("create_from_festival: merged destination failed",
+			slog.String("use_case", "create_from_festival.merged"),
+			slog.String("event", req.EventName),
+			slog.String("error", err.Error()),
+		)
+		defaultReporter(u.Reporter).Capture(err)
 		result.PlaylistURL = ""
 	}
 	result.SkippedArtists = append(result.SkippedArtists, skipped...)
@@ -125,6 +134,13 @@ func (u *CreatePlaylistFromFestival) executePerArtist(
 		result, err := u.Destination.CreatePlaylist(ctx, playlist)
 		normalize(&result)
 		if err != nil {
+			defaultLogger(u.Logger).Error("create_from_festival: per-artist destination failed",
+				slog.String("use_case", "create_from_festival.per_artist"),
+				slog.String("event", req.EventName),
+				slog.String("artist", a.ArtistName),
+				slog.String("error", err.Error()),
+			)
+			defaultReporter(u.Reporter).Capture(err)
 			result.PlaylistURL = ""
 		}
 		results = append(results, result)

@@ -110,7 +110,11 @@ func runFestival(ctx context.Context, name string) error {
 
 	httpClient := spotify.NewClient(ctx, cached.Token, cached.ClientID)
 	dest := spotify.NewPlaylistDestination(httpClient, cached.UserID)
-	uc := &usecases.CreatePlaylistFromFestival{Destination: dest}
+	uc := &usecases.CreatePlaylistFromFestival{
+		Destination: dest,
+		Reporter:    deps.Reporter,
+		Logger:      deps.Logger,
+	}
 
 	results, err := uc.Execute(ctx, usecases.FestivalRequest{
 		EventName: event.Name,

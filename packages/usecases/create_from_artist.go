@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"gigtape/domain"
@@ -12,6 +13,8 @@ import (
 // PlaylistDestination. The returned PlaylistResult is always non-nil.
 type CreatePlaylistFromArtist struct {
 	Destination domain.PlaylistDestination
+	Reporter    ErrorReporter // optional; defaults to NoopReporter
+	Logger      *slog.Logger  // optional; defaults to slog.Default()
 }
 
 // Execute creates the playlist. Returns a populated PlaylistResult on success or
@@ -26,6 +29,14 @@ func (u *CreatePlaylistFromArtist) Execute(ctx context.Context, artistName strin
 		CreatedAt: time.Now(),
 	}
 	result, err := u.Destination.CreatePlaylist(ctx, playlist)
+	if err != nil {
+		defaultLogger(u.Logger).Error("create_from_artist: destination failed",
+			slog.String("use_case", "create_from_artist"),
+			slog.String("artist", artistName),
+			slog.String("error", err.Error()),
+		)
+		defaultReporter(u.Reporter).Capture(err)
+	}
 	if result.MatchedTracks == nil {
 		result.MatchedTracks = []domain.Track{}
 	}

@@ -34,7 +34,11 @@ func runArtist(ctx context.Context, name string) error {
 
 	sfm := setlistfm.NewClient(deps.SetlistfmAPIKey)
 	setlistProvider := setlistfm.NewSetlistProvider(sfm)
-	preview := &usecases.PreviewSetlist{Provider: setlistProvider}
+	preview := &usecases.PreviewSetlist{
+		Provider: setlistProvider,
+		Reporter: deps.Reporter,
+		Logger:   deps.Logger,
+	}
 
 	artists, err := preview.SearchArtists(ctx, name)
 	if err != nil {
@@ -86,7 +90,11 @@ func runArtist(ctx context.Context, name string) error {
 
 	httpClient := spotify.NewClient(ctx, cached.Token, cached.ClientID)
 	dest := spotify.NewPlaylistDestination(httpClient, cached.UserID)
-	uc := &usecases.CreatePlaylistFromArtist{Destination: dest}
+	uc := &usecases.CreatePlaylistFromArtist{
+		Destination: dest,
+		Reporter:    deps.Reporter,
+		Logger:      deps.Logger,
+	}
 
 	result, err := uc.Execute(ctx, chosen.Name, setlist.Date, tracks)
 	if err != nil {

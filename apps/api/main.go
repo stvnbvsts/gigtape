@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"os"
 
 	"gigtape/adapters/setlistfm"
 	"gigtape/adapters/spotify"
 	"gigtape/api/handlers"
 	"gigtape/api/middleware"
+	"gigtape/api/observability"
 	"gigtape/domain"
 	"gigtape/usecases"
 
@@ -16,6 +18,19 @@ import (
 )
 
 func main() {
+	flush, err := observability.InitSentry(
+		os.Getenv("SENTRY_DSN"),
+		firstNonEmpty(os.Getenv("SENTRY_ENVIRONMENT"), "development"),
+		firstNonEmpty(os.Getenv("SENTRY_RELEASE"), "gigtape@dev"),
+	)
+	if err != nil {
+		log.Printf("sentry init failed: %v (continuing without)", err)
+	}
+	defer flush()
+
+	reporter := observability.SentryReporter{}
+	logger := newLogger()
+
 	router := gin.New()
 	router.Use(middleware.Logger())
 
@@ -23,7 +38,11 @@ func main() {
 	setlistProvider := setlistfm.NewSetlistProvider(sfm)
 	eventProvider := setlistfm.NewEventProvider(sfm)
 
-	previewUC := &usecases.PreviewSetlist{Provider: setlistProvider}
+	previewUC := &usecases.PreviewSetlist{
+		Provider: setlistProvider,
+		Reporter: reporter,
+		Logger:   logger,
+	}
 
 	destFactory := func(sess middleware.Session) domain.PlaylistDestination {
 		clientID := os.Getenv("SPOTIFY_CLIENT_ID")
@@ -32,7 +51,7 @@ func main() {
 	}
 
 	setupAuthRoutes(router)
-	setupProtectedRoutes(router, previewUC, eventProvider, destFactory)
+	setupProtectedRoutes(router, previewUC, eventProvider, destFactory, reporter, logger)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -54,14 +73,36 @@ func setupProtectedRoutes(
 	preview *usecases.PreviewSetlist,
 	eventProvider domain.EventProvider,
 	destFactory handlers.DestinationFactory,
+	reporter usecases.ErrorReporter,
+	logger *slog.Logger,
 ) {
 	protected := r.Group("/")
 	protected.Use(middleware.SessionAuth())
+	protected.Use(middleware.RateLimit())
 
 	protected.GET("/artists/search", handlers.SearchArtists(preview))
 	protected.GET("/setlists", handlers.GetSetlists(preview))
-	protected.POST("/playlists/artist", handlers.CreateArtistPlaylist(destFactory))
+	protected.POST("/playlists/artist", handlers.CreateArtistPlaylist(destFactory, reporter, logger))
 
 	protected.GET("/events/search", handlers.SearchEvents(eventProvider))
-	protected.POST("/playlists/festival", handlers.CreateFestivalPlaylist(destFactory))
+	protected.POST("/playlists/festival", handlers.CreateFestivalPlaylist(destFactory, reporter, logger))
+}
+
+func newLogger() *slog.Logger {
+	var h slog.Handler
+	if os.Getenv("LOG_FORMAT") == "json" {
+		h = slog.NewJSONHandler(os.Stdout, nil)
+	} else {
+		h = slog.NewTextHandler(os.Stdout, nil)
+	}
+	return slog.New(h)
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }

@@ -3,6 +3,7 @@ package setlistfm
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/url"
 	"regexp"
 	"sort"
@@ -109,7 +110,14 @@ func (p *EventProvider) SearchEvents(ctx context.Context, name string) ([]domain
 	for _, s := range parsed.Setlist {
 		k := key{venue: s.Venue.Name, date: s.EventDate}
 		if _, ok := groups[k]; !ok {
-			date, _ := time.Parse("02-01-2006", s.EventDate)
+			date, err := time.Parse("02-01-2006", s.EventDate)
+			if err != nil {
+				slog.Warn("setlistfm: unparseable event date, using zero time",
+					slog.String("adapter", "setlistfm"),
+					slog.String("event_date", s.EventDate),
+					slog.String("error", err.Error()),
+				)
+			}
 			loc := s.Venue.City.Name
 			if s.Venue.City.Country.Name != "" {
 				if loc != "" {

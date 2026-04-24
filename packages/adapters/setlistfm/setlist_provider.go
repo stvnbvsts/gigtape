@@ -3,6 +3,7 @@ package setlistfm
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/url"
 	"sort"
 	"time"
@@ -114,7 +115,14 @@ func (p *SetlistProvider) GetSetlists(ctx context.Context, artist domain.Artist)
 	}
 	out := make([]domain.Setlist, 0, len(parsed.Setlist))
 	for _, s := range parsed.Setlist {
-		date, _ := time.Parse("02-01-2006", s.EventDate)
+		date, err := time.Parse("02-01-2006", s.EventDate)
+		if err != nil {
+			slog.Warn("setlistfm: unparseable event date, using zero time",
+				slog.String("adapter", "setlistfm"),
+				slog.String("event_date", s.EventDate),
+				slog.String("error", err.Error()),
+			)
+		}
 		tracks := make([]domain.Track, 0)
 		for _, set := range s.Sets.Set {
 			for _, song := range set.Song {

@@ -133,11 +133,11 @@ multiple artists in lineup order. `go test ./packages/usecases/...` passes for f
 
 **Purpose**: Observability, compliance, and end-to-end validation.
 
-- [ ] T056 [P] Add Sentry SDK initialization to `apps/api/main.go` (read `SENTRY_DSN` env, call `sentry.Init`) and `apps/cli/main.go`; wrap unexpected adapter errors with `sentry.CaptureException(err)` at use case boundaries in `create_from_artist.go` and `create_from_festival.go`
-- [ ] T057 [P] Create `apps/api/middleware/ratelimit.go` with per-session request throttle using a `sync.Map` of token buckets; apply as Gin middleware before handler routes to protect upstream API quota at ~2 req/s per session
-- [ ] T058 [P] Audit all `if err != nil` paths in `packages/usecases/`, `packages/adapters/setlistfm/`, and `packages/adapters/spotify/` — confirm no error is discarded with `_`; add `slog.Error` log entries at use case boundaries with `session_id`, `use_case`, `artist`, and `error` fields
-- [ ] T059 [P] Audit all surfaces where setlist data appears and confirm `SourceAttribution` is rendered: (1) all views in `apps/web/src/views/` — add attribution display to any missing it; (2) `apps/cli/cmd/artist.go` (T037) and `apps/cli/cmd/festival.go` (T050) — verify attribution is printed after each setlist preview; setlist.fm policy: attribution MUST appear wherever setlist data is shown
-- [ ] T060 Run the complete `quickstart.md` validation checklist: `go test ./packages/domain/... ./packages/usecases/... ./packages/adapters/... ./apps/api/...`, CLI smoke tests (`gigtape auth`, `gigtape artist "Radiohead"`, `gigtape festival "Glastonbury"`), web UI smoke tests in browser; record and fix any failures
+- [X] T056 [P] Add Sentry SDK initialization to `apps/api/main.go` (read `SENTRY_DSN` env, call `sentry.Init`) and `apps/cli/main.go`; wrap unexpected adapter errors with `sentry.CaptureException(err)` at use case boundaries in `create_from_artist.go` and `create_from_festival.go`
+- [X] T057 [P] Create `apps/api/middleware/ratelimit.go` with per-session request throttle using a `sync.Map` of token buckets; apply as Gin middleware before handler routes to protect upstream API quota at ~2 req/s per session
+- [X] T058 [P] Audit all `if err != nil` paths in `packages/usecases/`, `packages/adapters/setlistfm/`, and `packages/adapters/spotify/` — confirm no error is discarded with `_`; add `slog.Error` log entries at use case boundaries with `session_id`, `use_case`, `artist`, and `error` fields
+- [X] T059 [P] Audit all surfaces where setlist data appears and confirm `SourceAttribution` is rendered: (1) all views in `apps/web/src/views/` — add attribution display to any missing it; (2) `apps/cli/cmd/artist.go` (T037) and `apps/cli/cmd/festival.go` (T050) — verify attribution is printed after each setlist preview; setlist.fm policy: attribution MUST appear wherever setlist data is shown
+- [X] T060 Run the complete `quickstart.md` validation checklist: `go test ./packages/domain/... ./packages/usecases/... ./packages/adapters/... ./apps/api/...`, CLI smoke tests (`gigtape auth`, `gigtape artist "Radiohead"`, `gigtape festival "Glastonbury"`), web UI smoke tests in browser; record and fix any failures
 
 **Checkpoint**: All validation checklist items in `quickstart.md` pass. Phase 1 complete.
 
