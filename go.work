@@ -1,0 +1,10 @@
+go 1.22
+
+use (
+	./apps/api
+	./apps/cli
+	./packages/adapters/setlistfm
+	./packages/adapters/spotify
+	./packages/domain
+	./packages/usecases
+)
