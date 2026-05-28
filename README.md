@@ -1,423 +1,285 @@
 # Gigtape
 
-Create private Spotify playlists from setlist.fm data. Given an artist, Gigtape
-fetches recent setlists, lets you preview and edit the track list, and creates
-a private playlist with a direct link.
+Gigtape creates private Spotify playlists from setlist.fm data.
 
-Built in Go with Hexagonal Architecture (Ports & Adapters), a Gin REST API, a
-Cobra CLI, and a Vue 3 SPA.
+Search for an artist or festival, preview the songs from recent setlists,
+remove or add tracks, and create a private Spotify playlist with a direct link.
+It is useful before a concert, festival, or tour stop when you want a playlist
+that sounds like the show you are about to see.
 
-## Status
+## Features
 
-Progress against [specs/001-gigtape-baseline/tasks.md](specs/001-gigtape-baseline/tasks.md):
+- Spotify PKCE OAuth for web, API, and CLI flows
+- Artist search with disambiguation
+- Recent setlist preview from setlist.fm
+- Track editing before playlist creation
+- Festival playlist mode with artist deselection and manual artist additions
+- Merged festival playlists or one playlist per artist
+- Explicit reporting for tracks Spotify could not match
+- Explicit reporting for skipped festival artists
+- setlist.fm attribution wherever setlist data is shown
+- Per-session API rate limiting
+- Optional Sentry reporting for API and CLI errors
 
-| Phase | Description | Status |
-|---|---|---|
-| 1 | Setup (workspace, modules, scaffolds) | ✅ Done |
-| 2 | Foundational (domain, session, OAuth shell) | ✅ Done |
-| 3 | User Story 1 — Single-artist playlist (MVP) | ✅ Done |
-| 4 | User Story 2 — Festival playlist | ✅ Done |
-| 5 | **Polish (Sentry, rate limit, audit)** | ✅ Done |
+## Architecture
 
-Phase 1 of the baseline is complete. What you can do today:
+Gigtape is a Go workspace monorepo with three user-facing surfaces:
 
-- Authenticate with Spotify (PKCE OAuth)
-- **Single-artist flow** — search → preview/edit setlist → create private playlist
-- **Festival flow** — search festival → review lineup with per-artist song counts
-  → deselect artists / add manual ones → choose **merged** (one playlist) or
-  **per-artist** (one playlist per artist) mode → receive Spotify links
-- See which tracks Spotify couldn't match (never silently dropped)
-- See which artists were skipped (deselected or no setlist data)
+```text
+apps/
+  api/                 Gin REST API
+  cli/                 Cobra CLI
+  web/                 Vue 3 + Vite SPA
+packages/
+  domain/              stdlib-only entities and port interfaces
+  usecases/            application use cases
+  adapters/
+    setlistfm/         setlist.fm client and providers
+    spotify/           Spotify OAuth, search, and playlist creation
+```
 
-Phase 5 added:
+The code follows a ports-and-adapters shape. `packages/domain` is the center:
+it defines entities and interfaces without importing framework, HTTP, Spotify,
+or setlist.fm code. Delivery apps wire the use cases to adapters at their
+composition roots.
 
-- **Sentry** SDK initialization in API + CLI; unexpected adapter errors are
-  captured at the use-case boundary through an `ErrorReporter` port (the
-  usecases package has zero Sentry imports). Set `SENTRY_DSN` to enable; leave
-  empty to disable without code changes.
-- **Per-session rate limit** on all protected API routes — token bucket at
-  ~2 req/s, burst 4, keyed by `X-Session-ID`. 429 `rate_limited` with a
-  `Retry-After: 1` header when the bucket is empty.
-- **Structured error logging** at use-case boundaries with `slog.Error`
-  (fields: `use_case`, `artist`/`event`, `session_id` on API, `error`).
-- **Error-path audit**: every `_` discard of an error in the adapters was
-  either replaced with explicit handling or annotated with a `slog.Warn`
-  fallback (e.g. unparseable setlist.fm dates).
-- **Attribution audit**: `SourceAttribution` is rendered everywhere setlist
-  data appears — CLI (`artist`, `festival`), web (SetlistPreview, per-row
-  in FestivalSearch).
-
-## Prerequisites
+## Requirements
 
 | Requirement | Version | Notes |
-|---|---|---|
-| Go | 1.22+ | `go version` |
-| Node | 20+ | `node --version` (only for the web UI) |
-| setlist.fm API key | — | [setlist.fm/settings/api](https://www.setlist.fm/settings/api) |
-| Spotify Developer app | — | [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) |
+|---|---:|---|
+| Docker | 24+ with Compose v2 | Recommended for API + web |
+| Go | 1.22+ | Required for native API or CLI |
+| Node | 20+ | Required for native web development |
+| setlist.fm API key | - | Create one in your setlist.fm account settings |
+| Spotify Developer app | - | Create one in the Spotify Developer Dashboard |
 
-In your Spotify Developer Dashboard, add **both** of these as allowed Redirect URIs:
+In your Spotify Developer Dashboard, add these redirect URIs:
 
-- `http://localhost:8080/auth/callback` — used by the web + API flow
-- `http://127.0.0.1:<dynamic-port>/callback` — used by the CLI (ephemeral
-  loopback; you will paste the exact port printed at login time, see below)
+- `http://localhost:8080/auth/callback` for the web and API flow
+- `http://127.0.0.1:<dynamic-port>/callback` for the native CLI flow
+
+The CLI chooses an available local port when you run `gigtape auth`; add the
+exact URI it prints if Spotify rejects the callback.
 
 ## Environment
 
-Copy the example and fill in the blanks:
+Copy the example file and fill in your credentials:
 
 ```bash
 cp .env.example .env
 ```
 
-Required keys (see [.env.example](.env.example)):
+Required and common values:
 
 ```env
 SETLISTFM_API_KEY=your_setlistfm_key_here
 SPOTIFY_CLIENT_ID=your_spotify_client_id
-SPOTIFY_CLIENT_SECRET=your_spotify_client_secret       # unused by PKCE, keep for future
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 SPOTIFY_REDIRECT_URI=http://localhost:8080/auth/callback
 SESSION_TTL_MINUTES=60
-WEB_REDIRECT_URL=http://localhost:5173/                 # SPA origin; leave empty for JSON callback
-SENTRY_DSN=                                             # leave empty to disable Sentry
-SENTRY_ENVIRONMENT=development                          # optional; defaults to "development"
-SENTRY_RELEASE=gigtape@dev                              # optional; defaults to gigtape@dev
-LOG_FORMAT=text                                         # or "json"
+WEB_REDIRECT_URL=http://localhost:5173/
+SENTRY_DSN=
+SENTRY_ENVIRONMENT=development
+SENTRY_RELEASE=gigtape@dev
+LOG_FORMAT=text
 ```
 
-Load the vars before running anything:
+`SPOTIFY_CLIENT_SECRET` is currently kept for future compatibility; the app
+uses PKCE and does not require the secret for the implemented OAuth flow.
+
+For native commands, load the environment first:
 
 ```bash
 set -a && source .env && set +a
 ```
 
-## Workspace setup
+## Run With Docker
 
-One-time sync after cloning:
+Docker runs the API and web UI. The CLI intentionally remains native because
+its OAuth flow opens your browser and listens on an ephemeral loopback port.
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+- Web UI: `http://localhost:5173`
+- API: `http://localhost:8080`
+
+The web container serves the built SPA with nginx and proxies `/api/*` to the
+API service on the internal Compose network. Browser redirects still use
+`localhost`, so the Spotify dashboard redirect URI remains
+`http://localhost:8080/auth/callback`.
+
+Useful Docker commands:
+
+```bash
+make docker-up
+make docker-build
+make docker-down
+```
+
+## Run Natively
+
+Initialize the Go workspace once after cloning:
 
 ```bash
 go work sync
 ```
 
-Domain-purity check (must show only stdlib imports):
-
-```bash
-( cd packages/domain && go list -f '{{ join .Imports "\n" }}' ./... | sort -u )
-# expected: context, fmt, time
-```
-
-## Build & run
-
-The `Makefile` at the repo root wraps the common commands:
-
-```bash
-make build-api     # go build ./apps/api
-make build-cli     # go build -o gigtape ./apps/cli
-make serve-web     # cd apps/web && npm run dev
-make test          # go test ./packages/...
-```
-
-### API server
+Start the API:
 
 ```bash
 go run ./apps/api
 # Listening on :8080
 ```
 
-Quick smoke test (no session required):
+Start the web UI in another terminal:
 
 ```bash
-curl -s http://localhost:8080/auth/login | jq
-# { "auth_url": "https://accounts.spotify.com/authorize?..." }
+cd apps/web
+npm install
+npm run dev
+# Vite dev server on http://localhost:5173
 ```
 
-### CLI
+The native Vite dev server proxies `/api/*` to `http://localhost:8080` by
+default. To point it somewhere else, create `apps/web/.env.local`:
+
+```env
+VITE_API_PROXY_TARGET=http://localhost:8080
+```
+
+Build and run the CLI natively:
 
 ```bash
 go build -o gigtape ./apps/cli
 ./gigtape --help
 ```
 
-### Web UI
+Common Make targets:
 
 ```bash
-cd apps/web
-npm install      # first time only
-npm run dev
-# Vite dev server on http://localhost:5173
-# /api/* is proxied to http://localhost:8080
+make build-api
+make build-cli
+make serve-web
+make test
 ```
 
-## How to test Phase 3 & 4 — single-artist and festival playlists
+## Web Usage
 
-### Option A — CLI (fastest)
+1. Open `http://localhost:5173`.
+2. Click **Connect Spotify** and complete consent in the browser.
+3. Search for an artist.
+4. Pick the correct artist result.
+5. Preview the setlist, remove songs, or add manual tracks.
+6. Create the private Spotify playlist.
+7. Open the returned Spotify playlist link.
 
-This is the flow validated by Phase 3's checkpoint.
+Festival mode is available from the web UI. Search for a festival or venue,
+review the lineup, deselect artists, add manual artists if needed, and choose
+either a merged playlist or one playlist per artist.
+
+## CLI Usage
+
+Authenticate first:
 
 ```bash
-# 1. Authenticate with Spotify (opens browser, waits on ephemeral loopback port)
 ./gigtape auth
-# → "Opening browser for Spotify authorization…"
-# → Complete consent in browser.
-# → "Authenticated as <your_spotify_user_id>"
-#
-# Token is cached at $TMPDIR/gigtape-token.json until it expires.
-
-# 2. Create a playlist from an artist's latest setlist
-./gigtape artist "Radiohead"
-#
-# Expected interaction:
-#   Multiple artists found:
-#     1. Radiohead — English rock band
-#     2. Radiohead — tribute band
-#   Pick number: 1
-#
-#   Setlist: Coachella 2024 (17 songs, 2024-04-12)
-#   Attribution: setlist.fm • https://www.setlist.fm/setlist/...
-#
-#      1. Let Down
-#      2. Lucky
-#      ...
-#
-#   Remove tracks by number (comma-separated), or Enter to keep all:
-#   Create playlist with 17 tracks? [y/n]: y
-#
-#   ✓ Playlist created: https://open.spotify.com/playlist/...
-#   ✓ 17 songs added
-#   ✗ 0 songs not found
 ```
 
-**Things to verify:**
+Create a playlist from an artist's latest setlist:
 
-- A private playlist appears in your Spotify account named
-  `"<Artist> — <YYYY-MM-DD>"`.
-- `SourceAttribution` is printed after the setlist preview (setlist.fm policy,
-  FR-013).
-- If any track has no Spotify match, it's listed under "✗ N songs not found on
-  Spotify" — never silently dropped.
-- If the most recent setlist has fewer than 6 songs, you'll see a warning.
+```bash
+./gigtape artist "Radiohead"
+```
 
-Festival flow (CLI):
+Create a festival playlist:
 
 ```bash
 ./gigtape festival "Glastonbury 2024"
-#
-# Expected interaction:
-#   Multiple events found:
-#     1. Glastonbury Festival — 2024-06-28 (Pilton, United Kingdom, 40 artists)
-#     ...
-#   Pick number: 1
-#
-#   Lineup (40 artists found, lineup may be incomplete):
-#      1. Coldplay (22 songs)
-#           attribution: setlist.fm • https://...
-#      2. SZA (18 songs)
-#           attribution: setlist.fm • https://...
-#      3. Some Opener (no setlist found)
-#     ...
-#
-#   Deselect artists by number (comma-separated), or Enter to include all: 3
-#   Mode [merged/per-artist]: merged
-#
-#   ✓ Playlist #1: https://open.spotify.com/playlist/...
-#     40 songs added
-#     Skipped artists: Some Opener
 ```
 
-Per-artist mode produces one playlist per included artist and prints each URL.
-Artists with no setlist (or explicitly deselected) are listed under "Skipped
-artists". FR-013 compliance: each artist's `SourceAttribution` is printed next
-to its song count.
+CLI OAuth tokens are cached at `$TMPDIR/gigtape-token.json` until they expire.
 
-### Option B — API directly
+## API Usage
 
-The REST contract is in [specs/001-gigtape-baseline/contracts/api.md](specs/001-gigtape-baseline/contracts/api.md).
-
-OAuth with the API requires a browser round-trip. The simplest path:
+Start OAuth:
 
 ```bash
-# 1. Get the auth URL and open it
-AUTH_URL=$(curl -s http://localhost:8080/auth/login | jq -r .auth_url)
-open "$AUTH_URL"      # macOS; on Linux use xdg-open
-
-# 2. Complete consent in browser. Spotify redirects to
-#    http://localhost:8080/auth/callback?code=…&state=…
-#    The API responds with { "session_id": "<uuid>" } — copy it.
-
-SESSION_ID=<paste-uuid-here>
-
-# 3. Search for an artist
-curl -s "http://localhost:8080/artists/search?q=Radiohead" \
-     -H "X-Session-ID: $SESSION_ID" | jq
-
-# 4. Pull recent setlists (use external_ref from step 3)
-ARTIST_REF=a74b1b7f-71a5-4011-9441-d0b5e4122711
-curl -s "http://localhost:8080/setlists?artist_ref=$ARTIST_REF&artist_name=Radiohead" \
-     -H "X-Session-ID: $SESSION_ID" | jq
-
-# 5. Create the playlist (pass the tracks you want)
-curl -s -X POST http://localhost:8080/playlists/artist \
-     -H "X-Session-ID: $SESSION_ID" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "artist_ref":"'"$ARTIST_REF"'",
-       "artist_name":"Radiohead",
-       "setlist_index":0,
-       "event_date":"2024-04-12",
-       "tracks":[
-         {"title":"Creep","artist_name":"Radiohead"},
-         {"title":"Karma Police","artist_name":"Radiohead"}
-       ]
-     }' | jq
+curl -s http://localhost:8080/auth/login | jq
 ```
 
-Festival flow:
+Open the returned `auth_url`, complete Spotify consent, and copy the returned
+`session_id` if the callback is configured to return JSON. Protected API routes
+require this header:
 
-```bash
-# 1. Search festivals (the query may include a year — it's parsed out and
-#    passed to setlist.fm's `year` parameter; the remainder goes to venueName).
-curl -s "http://localhost:8080/events/search?q=Glastonbury%202024" \
-     -H "X-Session-ID: $SESSION_ID" | jq
-
-# 2. Create merged festival playlist
-curl -s -X POST http://localhost:8080/playlists/festival \
-     -H "X-Session-ID: $SESSION_ID" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "event_name":"Glastonbury 2024",
-       "event_date":"2024-06-28",
-       "mode":"merged",
-       "artists":[
-         {"artist_ref":"...mbid-coldplay...","artist_name":"Coldplay","include":true,
-          "tracks":[{"title":"Yellow","artist_name":"Coldplay"}]},
-         {"artist_ref":"...mbid-sza...","artist_name":"SZA","include":false,"tracks":[]}
-       ]
-     }' | jq
-#
-# Per-artist mode: set "mode":"per_artist". Response returns HTTP 207 when at
-# least one playlist in the batch succeeded and at least one failed.
+```text
+X-Session-ID: <session-id>
 ```
 
-Error shapes are documented in `contracts/api.md`. 401 codes:
-`session_not_found` and `session_expired`.
-
-### Option C — Web UI
-
-The SPA covers the same flow.
-
-1. `npm run dev` in `apps/web` (and `go run ./apps/api` in another terminal).
-2. Open `http://localhost:5173`.
-3. Click **Connect Spotify** → complete consent in browser.
-4. With `WEB_REDIRECT_URL=http://localhost:5173/` set (default in
-   `.env.example`), the API's `/auth/callback` redirects your browser back to
-   the SPA with `?session_id=…` — the session is captured automatically and
-   the query string is scrubbed from the URL. Without `WEB_REDIRECT_URL`, the
-   callback returns `{"session_id": "…"}` as JSON; expand the
-   **Troubleshooting** block on the home page and paste the UUID to continue.
-5. Search an artist → pick a disambiguation → preview the setlist (with
-   attribution) → remove tracks or add manual ones → **Create Playlist**.
-6. Result view shows the Spotify link, matched count, and an explicit
-   "Not found on Spotify" list.
-
-If OAuth fails, the callback redirects with `?oauth_error=<code>` and the home
-page shows a banner explaining the failure.
-
-Festival flow (web): from the home page click **"Festival mode →"**, or go
-directly to `http://localhost:5173/festival`. Search → pick an event → review
-the lineup (checkboxes per artist, song count shown, "no setlist found"
-indicator) → add manual artists if needed → **Continue** → choose **merged**
-or **per-artist** mode → **Create Playlists**. Result view shows one card per
-created playlist plus a "Skipped artists" panel.
-
-## Endpoints available
+Available endpoints:
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/auth/login` | Start PKCE OAuth; returns `{ auth_url }` |
-| GET | `/auth/callback` | OAuth callback; returns `{ session_id }` |
-| GET | `/artists/search?q=` | Artist disambiguation candidates |
-| GET | `/setlists?artist_ref=&artist_name=` | Recent setlists (desc by date) |
-| POST | `/playlists/artist` | Create playlist from artist's setlist |
-| GET | `/events/search?q=` | Festival/event search (venueName + optional year) |
-| POST | `/playlists/festival` | Create merged or per-artist festival playlist(s) |
+| GET | `/auth/login` | Start Spotify PKCE OAuth |
+| GET | `/auth/callback` | Spotify OAuth callback |
+| GET | `/artists/search?q=` | Search artist candidates |
+| GET | `/setlists?artist_ref=&artist_name=` | Fetch recent setlists |
+| POST | `/playlists/artist` | Create an artist playlist |
+| GET | `/events/search?q=` | Search festival/event candidates |
+| POST | `/playlists/festival` | Create merged or per-artist festival playlists |
 
-HTTP 207 Multi-Status is returned by `/playlists/festival` in `per_artist`
-mode when at least one playlist succeeded and at least one failed.
-
-## Tests
-
-No test files are committed in Phase 3 (tasks.md did not request them, but the
-fakes infrastructure in `packages/usecases/fakes/` is in place for when they
-are added).
-
-Build check across all modules:
+Example artist search:
 
 ```bash
-go build ./apps/api ./apps/cli
-( cd packages/domain && go build ./... )
-( cd packages/usecases && go build ./... )
-( cd packages/adapters/setlistfm && go build ./... )
-( cd packages/adapters/spotify && go build ./... )
+curl -s "http://localhost:8080/artists/search?q=Radiohead" \
+  -H "X-Session-ID: $SESSION_ID" | jq
 ```
 
-## Project layout
+## Testing
 
-See [specs/001-gigtape-baseline/plan.md](specs/001-gigtape-baseline/plan.md)
-for the full rationale.
+Run the Go test suite:
 
-```
-packages/
-  domain/              stdlib-only entities + port interfaces
-  usecases/            use case logic + hand-rolled fakes for tests
-  adapters/
-    setlistfm/         SetlistProvider implementation
-    spotify/           PlaylistDestination + OAuth PKCE
-apps/
-  api/                 Gin REST server (composition root: main.go)
-  cli/                 Cobra CLI (composition root: main.go)
-  web/                 Vue 3 + Vite SPA
+```bash
+make test
 ```
 
-The domain package has zero external imports — the Go compiler enforces this.
+Build the web app:
+
+```bash
+cd apps/web
+npm ci
+npm run build
+```
+
+Check the domain package stays framework-free:
+
+```bash
+( cd packages/domain && go list -f '{{ join .Imports "\n" }}' ./... | sort -u )
+# expected: context, fmt, time
+```
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `401 session_not_found` | No or expired `X-Session-ID` | Re-run `/auth/login` flow |
-| `401 session_expired` | OAuth token TTL exceeded | Re-authenticate |
-| CLI: `not authenticated` | Token file missing | Run `./gigtape auth` first |
-| CLI browser: OAuth redirect error | Loopback URI not allowed | Add `http://127.0.0.1:<port>/callback` to Spotify app (the exact port is printed when `gigtape auth` starts) |
-| Playlist not created | Missing OAuth scope | Verify `playlist-modify-private` in the Spotify app config |
-| Web: "Please connect Spotify first" | Session ID not captured | Use the "Paste session ID" shim (see Option C, step 4) |
-| 429 from setlist.fm / Spotify | Rate limit (upstream) | Backoff is implemented; retry after a few seconds |
-| 429 `rate_limited` from the Gigtape API | Per-session rate limit (~2 req/s) | Honour the `Retry-After` header, or space requests |
-| Setlist has 0 songs / "No setlists found" | Artist has no recent shows on setlist.fm | Try a more active artist; manual track entry works in the web UI |
+| `401 session_not_found` | Missing or unknown `X-Session-ID` | Re-run the Spotify login flow |
+| `401 session_expired` | Session TTL expired | Re-authenticate |
+| `429 rate_limited` | Per-session API rate limit | Wait and retry; honor `Retry-After` |
+| Spotify redirect error | Redirect URI missing in Spotify app | Add the exact callback URI to the Spotify dashboard |
+| CLI says `not authenticated` | Token file missing or expired | Run `./gigtape auth` |
+| Playlist not created | Missing Spotify scope or auth issue | Re-authenticate and verify app scopes |
+| No setlists found | Artist or event has no setlist.fm data | Try another artist/event or add tracks manually in the web UI |
+| Some tracks are missing | Spotify search could not match them | Review the unmatched tracks list |
 
-## Next
+## Known Caveats
 
-Phase 1 of the baseline is complete. Remaining work lives in `plan.md` as
-Phase 2 / 3 placeholders (Ticketmaster + Apple Music adapters, Telegram +
-Discord surfaces, `DiscoverUpcomingConcerts` use case) — not scheduled yet.
-
-## Known caveats
-
-- **`lineup_complete` is always `false`.** setlist.fm does not expose a
-  "complete lineup" signal, so the event provider cannot tell you whether the
-  artists it returned are the full bill or a subset. This is a data-source
-  limitation, not a bug. The UI treats every lineup as potentially partial and
-  always allows manual artist additions; no weak heuristic is applied because
-  false confidence would be worse than the current "always maybe partial"
-  posture. If you want authoritative lineup data, a Ticketmaster adapter is
-  tracked as Phase 2 in `plan.md`.
-- setlist.fm has no `eventName` parameter on `/search/setlists`. The event
-  provider parses a year out of the query (e.g. `"Glastonbury 2024"` →
-  `venueName=Glastonbury`, `year=2024`) and groups returned setlists by
-  `(venue, eventDate)`. Festival searches that rely on curated event names
-  rather than venue names may return fewer results than expected.
-- `lineup_complete` is always `false` — setlist.fm doesn't surface ground
-  truth for full lineups; the UI treats every lineup as potentially partial
-  and allows manual artist additions.
-- Per-artist festival mode makes one Spotify request per artist with no
-  parallelism; a 20-artist festival takes proportionally longer. Rate-limit
-  handling (429 + `Retry-After`) is in place.
+- setlist.fm does not expose authoritative complete festival lineups, so
+  festival search results should be treated as potentially partial.
+- Festival search relies on setlist.fm setlist and venue data. Queries that
+  depend on curated festival names may return fewer results than expected.
+- Per-artist festival mode creates playlists sequentially, so large lineups can
+  take a while.
+- Sentry is disabled unless `SENTRY_DSN` is set.
