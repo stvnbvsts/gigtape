@@ -283,3 +283,24 @@ Check the domain package stays framework-free:
 - Per-artist festival mode creates playlists sequentially, so large lineups can
   take a while.
 - Sentry is disabled unless `SENTRY_DSN` is set.
+
+## Roadmap
+
+Phase 1 is the current baseline: Spotify playlist creation from setlist.fm
+artist and festival-style setlist data, delivered through the web app, REST
+API, and CLI. It is intentionally stateless, with in-memory sessions and no
+stored accounts, playlist history, or preferences.
+
+Phase 2 is not implemented yet. The planned direction is:
+
+- Ticketmaster-backed event discovery so users can search upcoming concerts
+  and festivals from a more structured event source.
+- A `DiscoverUpcomingConcerts` use case that can sit beside the current
+  setlist and playlist use cases.
+- Additional delivery surfaces such as Telegram and Discord bots.
+- Stronger state management or caching if the beta user count grows beyond the
+  current local/in-memory design.
+- More complete automated coverage around interactive CLI and full API flows.
+
+Apple Music support is considered later-phase work and is not part of the
+current Phase 2 scope.

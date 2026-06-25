@@ -187,15 +187,8 @@ func chooseEvent(events []domain.Event) *domain.Event {
 
 func promptDeselect(total int) map[int]bool {
 	ans := prompt("\nDeselect artists by number (comma-separated), or Enter to include all: ")
-	out := map[int]bool{}
 	if ans == "" {
-		return out
+		return map[int]bool{}
 	}
-	for _, part := range strings.Split(ans, ",") {
-		n, err := strconv.Atoi(strings.TrimSpace(part))
-		if err == nil && n >= 1 && n <= total {
-			out[n] = true
-		}
-	}
-	return out
+	return parseIndexSet(ans, total)
 }

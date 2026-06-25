@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"gigtape/domain"
@@ -43,4 +44,15 @@ func promptManualFestivalArtists() []manualFestivalArtist {
 type manualFestivalArtist struct {
 	Name   string
 	Tracks []domain.Track
+}
+
+func parseIndexSet(input string, max int) map[int]bool {
+	out := map[int]bool{}
+	for _, part := range strings.Split(input, ",") {
+		n, err := strconv.Atoi(strings.TrimSpace(part))
+		if err == nil && n >= 1 && n <= max {
+			out[n] = true
+		}
+	}
+	return out
 }

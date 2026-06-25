@@ -156,13 +156,11 @@ func editTracks(tracks []domain.Track) []domain.Track {
 	if ans == "" {
 		return tracks
 	}
-	remove := map[int]bool{}
-	for _, part := range strings.Split(ans, ",") {
-		n, err := strconv.Atoi(strings.TrimSpace(part))
-		if err == nil {
-			remove[n] = true
-		}
-	}
+	remove := parseIndexSet(ans, len(tracks))
+	return filterRemovedTracks(tracks, remove)
+}
+
+func filterRemovedTracks(tracks []domain.Track, remove map[int]bool) []domain.Track {
 	out := make([]domain.Track, 0, len(tracks))
 	for i, t := range tracks {
 		if remove[i+1] {
