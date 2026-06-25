@@ -5,8 +5,7 @@ FROM node:20-bookworm-slim AS build
 WORKDIR /app
 
 COPY apps/web/package*.json ./
-RUN --mount=type=cache,id=npm,target=/root/.npm \
-    npm ci
+RUN npm ci
 
 COPY apps/web ./
 RUN npm run build
