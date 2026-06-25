@@ -17,6 +17,7 @@ const error = ref('')
 const oauthBanner = ref('')
 const manualSession = ref('')
 const router = useRouter()
+const authUrl = ref('')
 
 onMounted(() => {
   const code = consumeOAuthError()
@@ -26,10 +27,21 @@ onMounted(() => {
         ? 'We could not retrieve your Spotify profile. Please try again.'
         : 'OAuth handshake failed. Please try connecting your Spotify account again.'
   }
+  getAuthUrl()
+    .then((r) => (authUrl.value = r.auth_url))
+    .catch(() => {})
 })
 
 async function connectSpotify() {
   oauthBanner.value = ''
+  // Navigate synchronously on click — some browsers (Safari, Arc) drop the
+  // user-gesture flag if location.href is set after an awaited fetch,
+  // silently swallowing the redirect. authUrl is prefetched on mount so the
+  // click handler itself never awaits before navigating.
+  if (authUrl.value) {
+    window.location.href = authUrl.value
+    return
+  }
   try {
     const { auth_url } = await getAuthUrl()
     window.location.href = auth_url

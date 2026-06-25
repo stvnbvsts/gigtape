@@ -50,6 +50,10 @@ func main() {
 		return spotify.NewPlaylistDestination(httpClient, sess.UserID)
 	}
 
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{"service": "gigtape-api", "status": "ok"})
+	})
+
 	setupAuthRoutes(router)
 	setupProtectedRoutes(router, previewUC, eventProvider, destFactory, reporter, logger)
 
