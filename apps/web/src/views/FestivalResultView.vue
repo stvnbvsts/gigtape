@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import type { FestivalResultEntry } from '../api/client'
+import { toSpotifyAppURI, type FestivalResultEntry } from '../api/client'
 
 const results = ref<FestivalResultEntry[]>([])
 
@@ -25,7 +25,8 @@ const skipped = computed(() => {
     <article v-for="(r, i) in results" :key="i" class="result-card">
       <h2>Playlist #{{ i + 1 }}</h2>
       <p v-if="r.playlist_url">
-        <a :href="r.playlist_url" target="_blank" rel="noopener">Open in Spotify</a>
+        <a v-if="toSpotifyAppURI(r.playlist_url)" :href="toSpotifyAppURI(r.playlist_url)!">Open in Spotify app</a>
+        <a v-else :href="r.playlist_url" target="_blank" rel="noopener">Open in Spotify</a>
       </p>
       <p v-else class="error">
         Could not be created. {{ r.error || '' }}

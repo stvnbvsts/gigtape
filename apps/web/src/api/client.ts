@@ -62,6 +62,15 @@ export interface FestivalResultEntry extends PlaylistResult {
   error?: string
 }
 
+// Spotify's open.spotify.com links open the web player even with the app
+// installed (desktop). The spotify: URI scheme launches the native app
+// directly when present, falling back to nothing otherwise — so callers
+// should keep the open.spotify.com link as a fallback.
+export function toSpotifyAppURI(playlistUrl: string): string | null {
+  const m = playlistUrl.match(/open\.spotify\.com\/playlist\/([A-Za-z0-9]+)/)
+  return m ? `spotify:playlist:${m[1]}` : null
+}
+
 let sessionId = ''
 
 export function setSessionId(id: string) {

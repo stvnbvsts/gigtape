@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import type { PlaylistResult } from '../api/client'
+import { toSpotifyAppURI, type PlaylistResult } from '../api/client'
 
 const result = ref<PlaylistResult | null>(null)
 
@@ -12,6 +12,7 @@ onMounted(() => {
 })
 
 const hasUnmatched = computed(() => (result.value?.unmatched_tracks?.length ?? 0) > 0)
+const appURI = computed(() => (result.value ? toSpotifyAppURI(result.value.playlist_url) : null))
 </script>
 
 <template>
@@ -19,7 +20,12 @@ const hasUnmatched = computed(() => (result.value?.unmatched_tracks?.length ?? 0
     <template v-if="result">
       <h1>Playlist created</h1>
       <p>
-        <a :href="result.playlist_url" target="_blank" rel="noopener">Open in Spotify</a>
+        <a v-if="appURI" :href="appURI">Open in Spotify app</a>
+        <a v-else :href="result.playlist_url" target="_blank" rel="noopener">Open in Spotify</a>
+        <span v-if="appURI">
+          (no app installed?
+          <a :href="result.playlist_url" target="_blank" rel="noopener">open in browser</a>)
+        </span>
       </p>
       <p>{{ result.matched_tracks.length }} tracks added.</p>
 
