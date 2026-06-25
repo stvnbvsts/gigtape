@@ -25,9 +25,9 @@ func tokenFilePath() string {
 }
 
 type cachedToken struct {
-	Token     *oauth2.Token `json:"token"`
-	UserID    string        `json:"user_id"`
-	ClientID  string        `json:"client_id"`
+	Token    *oauth2.Token `json:"token"`
+	UserID   string        `json:"user_id"`
+	ClientID string        `json:"client_id"`
 }
 
 func saveToken(t cachedToken) error {
@@ -48,6 +48,14 @@ func loadToken() (cachedToken, error) {
 		return cachedToken{}, err
 	}
 	return t, nil
+}
+
+func discardToken() error {
+	err := os.Remove(tokenFilePath())
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
 }
 
 func authCmd() *cobra.Command {

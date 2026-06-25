@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
+  clearSessionId,
   createArtistPlaylist,
   getSetlists,
   type Setlist,
@@ -69,6 +70,7 @@ async function createPlaylist() {
       event_date: eventDate,
       tracks: tracks.value,
     })
+    clearSessionId()
     router.push({ path: '/result', state: { result: JSON.parse(JSON.stringify(result)) } })
     sessionStorage.setItem('gigtape_last_result', JSON.stringify(result))
   } catch (e) {

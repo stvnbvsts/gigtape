@@ -24,13 +24,13 @@ Create `.env` in the repo root (git-ignored):
 SETLISTFM_API_KEY=your_setlistfm_key_here
 SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
-SPOTIFY_REDIRECT_URI=http://localhost:8080/auth/callback
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:8080/auth/callback
 SESSION_TTL_MINUTES=60
 SENTRY_DSN=
 LOG_FORMAT=text
 ```
 
-In your Spotify Developer Dashboard, add `http://localhost:8080/auth/callback` as an allowed
+In your Spotify Developer Dashboard, add `http://127.0.0.1:8080/auth/callback` as an allowed
 redirect URI.
 
 ---

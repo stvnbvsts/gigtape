@@ -70,3 +70,26 @@ func TestSearchTrack_NonOKReturnsError(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "status 500")
 }
+
+func TestSearchTrack_RetriesOn429(t *testing.T) {
+	attempts := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		attempts++
+		if attempts == 1 {
+			w.Header().Set("Retry-After", "0")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		_, _ = w.Write([]byte(`{"tracks":{"items":[{"uri":"spotify:track:retry"}]}}`))
+	}))
+	defer srv.Close()
+	withTestBase(t, srv)
+
+	uri, found, err := SearchTrack(context.Background(),
+		domain.Track{Title: "Retry", ArtistName: "Artist"}, http.DefaultClient)
+
+	require.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, "spotify:track:retry", uri)
+	assert.Equal(t, 2, attempts)
+}

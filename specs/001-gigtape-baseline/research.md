@@ -47,9 +47,9 @@ requests. 429 responses trigger exponential backoff: 1s → 2s → 4s → 8s (ma
 |---|---|
 | `GET /search/artists?artistName={name}` | Artist disambiguation — returns candidates |
 | `GET /artist/{mbid}/setlists?p=1` | Recent setlists for artist (sorted date desc) |
-| `GET /search/setlists?eventName={name}` | Festival lineup search |
+| `GET /search/setlists?venueName={name}&year={year}` | Festival/event setlist search |
 
-**Festival search**: setlist.fm supports event-level search via `eventName`. Results include per-artist setlists where available. Incomplete lineups are expected — the hybrid approach (auto-populate from setlist.fm, manual fill for gaps) directly maps to this API behavior.
+**Festival search**: setlist.fm does not expose a dedicated festival lineup endpoint. Phase 1 searches setlists by venue name (and year when present), then groups the returned setlists into event candidates. Incomplete lineups are expected — the hybrid approach (auto-populate from setlist.fm, manual fill for gaps) directly maps to this API behavior.
 
 **Attribution**: Every setlist response includes a URL. The adapter populates `Setlist.SourceAttribution` as `"setlist.fm • {url}"`. This string must be rendered wherever setlist data appears.
 
@@ -76,8 +76,8 @@ CLI, Spotify CLI, and the Go `golang.org/x/oauth2` package supports it natively.
 | Endpoint | Purpose |
 |---|---|
 | `GET /v1/search?type=track&q=track:{title}+artist:{artist}` | Track search |
-| `POST /v1/users/{user_id}/playlists` | Create playlist (body: `"public": false`) |
-| `POST /v1/playlists/{id}/tracks` | Add tracks in batches of 100 (Spotify limit) |
+| `POST /v1/me/playlists` | Create playlist (body: `"public": false`) |
+| `POST /v1/playlists/{id}/items` | Add tracks in batches of 100 (Spotify limit) |
 
 **Track matching strategy**: Query `track:{title} artist:{artistName}`. Take first result.
 If zero results returned, add title to `PlaylistResult.UnmatchedTracks`. No fuzzy matching

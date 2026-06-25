@@ -35,7 +35,7 @@ func (d *PlaylistDestination) CreatePlaylist(ctx context.Context, playlist domai
 		SkippedArtists:  []string{},
 	}
 
-	createURL := fmt.Sprintf("%s/users/%s/playlists", spotifyAPIBase, d.userID)
+	createURL := spotifyAPIBase + "/me/playlists"
 	createBody, err := json.Marshal(map[string]any{
 		"name":        playlist.Name,
 		"public":      false,
@@ -105,7 +105,7 @@ func (d *PlaylistDestination) CreatePlaylist(ctx context.Context, playlist domai
 }
 
 func (d *PlaylistDestination) addTracks(ctx context.Context, playlistID string, uris []string) error {
-	u := fmt.Sprintf("%s/playlists/%s/tracks", spotifyAPIBase, playlistID)
+	u := fmt.Sprintf("%s/playlists/%s/items", spotifyAPIBase, playlistID)
 	body, err := json.Marshal(map[string]any{"uris": uris})
 	if err != nil {
 		return fmt.Errorf("spotify: add tracks: marshal: %w", err)

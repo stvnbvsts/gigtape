@@ -26,7 +26,7 @@ func TestGenerateChallenge_UniqueAndDerived(t *testing.T) {
 }
 
 func TestAuthURL_IncludesRequiredParams(t *testing.T) {
-	u := AuthURL("client-xyz", "http://localhost:8080/auth/callback", "chal-1", "state-1")
+	u := AuthURL("client-xyz", "http://127.0.0.1:8080/auth/callback", "chal-1", "state-1")
 
 	parsed, err := url.Parse(u)
 	require.NoError(t, err)
@@ -36,7 +36,7 @@ func TestAuthURL_IncludesRequiredParams(t *testing.T) {
 	q := parsed.Query()
 	assert.Equal(t, "client-xyz", q.Get("client_id"))
 	assert.Equal(t, "code", q.Get("response_type"))
-	assert.Equal(t, "http://localhost:8080/auth/callback", q.Get("redirect_uri"))
+	assert.Equal(t, "http://127.0.0.1:8080/auth/callback", q.Get("redirect_uri"))
 	assert.Equal(t, "chal-1", q.Get("code_challenge"))
 	assert.Equal(t, "S256", q.Get("code_challenge_method"))
 	assert.Equal(t, "state-1", q.Get("state"))

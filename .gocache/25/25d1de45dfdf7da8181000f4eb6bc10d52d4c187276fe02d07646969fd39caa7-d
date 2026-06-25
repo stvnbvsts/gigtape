@@ -1,0 +1,4 @@
+./auth.go
+./events.go
+./playlist.go
+./setlist.go

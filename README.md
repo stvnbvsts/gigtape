@@ -55,8 +55,8 @@ composition roots.
 
 In your Spotify Developer Dashboard, add these redirect URIs:
 
-- `http://localhost:8080/auth/callback` for the web and API flow
-- `http://127.0.0.1:<dynamic-port>/callback` for the native CLI flow
+- `http://127.0.0.1:8080/auth/callback` for the web and API flow
+- `http://127.0.0.1/callback` for the native CLI flow; Spotify allows loopback IP redirects to add a dynamic port at authorization time
 
 The CLI chooses an available local port when you run `gigtape auth`; add the
 exact URI it prints if Spotify rejects the callback.
@@ -75,7 +75,7 @@ Required and common values:
 SETLISTFM_API_KEY=your_setlistfm_key_here
 SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
-SPOTIFY_REDIRECT_URI=http://localhost:8080/auth/callback
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:8080/auth/callback
 SESSION_TTL_MINUTES=60
 WEB_REDIRECT_URL=http://localhost:5173/
 SENTRY_DSN=
@@ -110,7 +110,7 @@ Then open:
 The web container serves the built SPA with nginx and proxies `/api/*` to the
 API service on the internal Compose network. Browser redirects still use
 `localhost`, so the Spotify dashboard redirect URI remains
-`http://localhost:8080/auth/callback`.
+`http://127.0.0.1:8080/auth/callback`.
 
 Useful Docker commands:
 

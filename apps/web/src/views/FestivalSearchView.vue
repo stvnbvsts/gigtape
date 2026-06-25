@@ -16,6 +16,7 @@ interface LineupRow {
   tracks: Track[]
   hasSetlist: boolean
   attribution: string
+  draft_title: string
 }
 
 const router = useRouter()
@@ -26,6 +27,7 @@ const lineup = ref<LineupRow[]>([])
 const manualName = ref('')
 const loading = ref(false)
 const error = ref('')
+const searched = ref(false)
 
 async function onSearch() {
   error.value = ''
@@ -40,6 +42,7 @@ async function onSearch() {
     events.value = res.events
     selectedEventIdx.value = null
     lineup.value = []
+    searched.value = true
   } catch (e) {
     error.value = (e as Error).message
   } finally {
@@ -63,6 +66,7 @@ async function pickEvent(i: number) {
         tracks: top ? top.tracks : [],
         hasSetlist: !!top,
         attribution: top ? top.source_attribution : '',
+        draft_title: '',
       })
     } catch {
       rows.push({
@@ -72,6 +76,7 @@ async function pickEvent(i: number) {
         tracks: [],
         hasSetlist: false,
         attribution: '',
+        draft_title: '',
       })
     }
   }
@@ -89,8 +94,37 @@ function addManual() {
     tracks: [],
     hasSetlist: false,
     attribution: '',
+    draft_title: '',
   })
   manualName.value = ''
+}
+
+function addTrack(row: LineupRow) {
+  const title = row.draft_title.trim()
+  if (!title) return
+  row.tracks.push({ title, artist_name: row.artist_name })
+  row.draft_title = ''
+}
+
+function removeTrack(row: LineupRow, index: number) {
+  row.tracks.splice(index, 1)
+}
+
+function startManualFestival() {
+  const name = query.value.trim() || 'Manual festival'
+  const today = new Date().toISOString().slice(0, 10)
+  events.value = [
+    {
+      name,
+      date: today,
+      location: 'manual',
+      artists: [],
+      lineup_complete: false,
+    },
+  ]
+  selectedEventIdx.value = 0
+  lineup.value = []
+  searched.value = true
 }
 
 function proceedToMode() {
@@ -135,9 +169,20 @@ function proceedToMode() {
             <input type="checkbox" v-model="row.include" />
             <strong>{{ row.artist_name }}</strong>
             <span v-if="row.hasSetlist"> ({{ row.tracks.length }} songs)</span>
+            <span v-else-if="row.tracks.length"> ({{ row.tracks.length }} manual songs)</span>
             <span v-else class="no-setlist"> (no setlist found)</span>
           </label>
           <div v-if="row.attribution" class="attribution">{{ row.attribution }}</div>
+          <ol v-if="row.tracks.length" class="track-editor">
+            <li v-for="(track, trackIdx) in row.tracks" :key="trackIdx">
+              <span>{{ track.title }}</span>
+              <button type="button" @click="removeTrack(row, trackIdx)">Remove</button>
+            </li>
+          </ol>
+          <form class="manual-track" @submit.prevent="addTrack(row)">
+            <input v-model="row.draft_title" :placeholder="`Add song for ${row.artist_name}`" />
+            <button type="submit">Add song</button>
+          </form>
         </li>
       </ul>
 
@@ -147,6 +192,11 @@ function proceedToMode() {
       </form>
 
       <button type="button" @click="proceedToMode">Continue</button>
+    </template>
+
+    <template v-else-if="searched && !loading && events.length === 0">
+      <p>No events found.</p>
+      <button type="button" @click="startManualFestival">Build manually</button>
     </template>
   </section>
 </template>
@@ -164,6 +214,17 @@ function proceedToMode() {
 }
 .no-setlist {
   color: #a60;
+}
+.track-editor {
+  margin-left: 1.5rem;
+}
+.track-editor li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.manual-track {
+  margin: 0.4rem 0 0.8rem 1.5rem;
 }
 .error {
   color: #b00;

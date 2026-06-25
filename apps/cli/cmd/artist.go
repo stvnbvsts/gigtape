@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"gigtape/adapters/setlistfm"
 	"gigtape/adapters/spotify"
@@ -59,25 +60,30 @@ func runArtist(ctx context.Context, name string) error {
 	if err != nil {
 		return fmt.Errorf("get setlists: %w", err)
 	}
+	var tracks []domain.Track
+	playlistDate := time.Now()
 	if len(res.Setlists) == 0 {
 		fmt.Println("No setlists found for this artist.")
-		return nil
-	}
-	setlist := res.Setlists[0]
-	fmt.Printf("\nSetlist: %s (%d songs, %s)\n",
-		setlist.EventName, len(setlist.Tracks), setlist.Date.Format("2006-01-02"))
-	// FR-013: print attribution immediately after setlist preview.
-	fmt.Printf("Attribution: %s\n\n", setlist.SourceAttribution)
+		tracks = promptManualTracks(chosen.Name)
+	} else {
+		setlist := res.Setlists[0]
+		playlistDate = setlist.Date
+		fmt.Printf("\nSetlist: %s (%d songs, %s)\n",
+			setlist.EventName, len(setlist.Tracks), setlist.Date.Format("2006-01-02"))
+		// FR-013: print attribution immediately after setlist preview.
+		fmt.Printf("Attribution: %s\n\n", setlist.SourceAttribution)
 
-	if res.ShortWarning {
-		fmt.Printf("⚠ Warning: only %d songs — setlist may be incomplete.\n\n", len(setlist.Tracks))
+		if res.ShortWarning {
+			fmt.Printf("Warning: only %d songs — setlist may be incomplete.\n\n", len(setlist.Tracks))
+		}
+
+		for i, t := range setlist.Tracks {
+			fmt.Printf("  %2d. %s\n", i+1, t.Title)
+		}
+
+		tracks = editTracks(setlist.Tracks)
 	}
 
-	for i, t := range setlist.Tracks {
-		fmt.Printf("  %2d. %s\n", i+1, t.Title)
-	}
-
-	tracks := editTracks(setlist.Tracks)
 	if len(tracks) == 0 {
 		fmt.Println("No tracks left; not creating playlist.")
 		return nil
@@ -96,9 +102,12 @@ func runArtist(ctx context.Context, name string) error {
 		Logger:      deps.Logger,
 	}
 
-	result, err := uc.Execute(ctx, chosen.Name, setlist.Date, tracks)
+	result, err := uc.Execute(ctx, chosen.Name, playlistDate, tracks)
 	if err != nil {
 		return fmt.Errorf("create playlist: %w", err)
+	}
+	if err := discardToken(); err != nil {
+		return fmt.Errorf("discard token: %w", err)
 	}
 	fmt.Printf("\n✓ Playlist created: %s\n", result.PlaylistURL)
 	fmt.Printf("✓ %d songs added\n", len(result.MatchedTracks))

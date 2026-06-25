@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"gigtape/adapters/setlistfm"
 	"gigtape/adapters/spotify"
@@ -40,15 +41,15 @@ func runFestival(ctx context.Context, name string) error {
 	if err != nil {
 		return fmt.Errorf("search events: %w", err)
 	}
+	event := &domain.Event{Name: name, Date: time.Now(), Location: "manual"}
 	if len(events) == 0 {
-		fmt.Println("No events found.")
-		return nil
-	}
-
-	event := chooseEvent(events)
-	if event == nil {
-		fmt.Println("Aborted.")
-		return nil
+		fmt.Println("No events found. You can add artists manually.")
+	} else {
+		event = chooseEvent(events)
+		if event == nil {
+			fmt.Println("Aborted.")
+			return nil
+		}
 	}
 
 	fmt.Printf("\n%s — %s (%s)\n", event.Name, event.Date.Format("2006-01-02"), event.Location)
@@ -58,22 +59,22 @@ func runFestival(ctx context.Context, name string) error {
 	type lineupEntry struct {
 		artist  domain.Artist
 		setlist *domain.Setlist // may be nil
+		tracks  []domain.Track
 	}
 	lineup := make([]lineupEntry, 0, len(event.Artists))
 	for _, a := range event.Artists {
 		setlists, err := setlistProvider.GetSetlists(ctx, a)
 		var s *domain.Setlist
+		tracks := []domain.Track{}
 		if err == nil && len(setlists) > 0 {
 			s = &setlists[0]
+			tracks = s.Tracks
 		}
-		lineup = append(lineup, lineupEntry{artist: a, setlist: s})
+		lineup = append(lineup, lineupEntry{artist: a, setlist: s, tracks: tracks})
 	}
 
 	for i, e := range lineup {
-		count := 0
-		if e.setlist != nil {
-			count = len(e.setlist.Tracks)
-		}
+		count := len(e.tracks)
 		label := e.artist.Name
 		if count == 0 {
 			fmt.Printf("  %2d. %s (no setlist found)\n", i+1, label)
@@ -82,6 +83,19 @@ func runFestival(ctx context.Context, name string) error {
 			// FR-013: print source attribution per artist where setlist data is shown.
 			fmt.Printf("       attribution: %s\n", e.setlist.SourceAttribution)
 		}
+	}
+
+	for _, manual := range promptManualFestivalArtists() {
+		lineup = append(lineup, lineupEntry{
+			artist: domain.Artist{Name: manual.Name},
+			tracks: manual.Tracks,
+		})
+		fmt.Printf("  %2d. %s (%d manual songs)\n", len(lineup), manual.Name, len(manual.Tracks))
+	}
+
+	if len(lineup) == 0 {
+		fmt.Println("No artists selected; not creating playlist.")
+		return nil
 	}
 
 	dropped := promptDeselect(len(lineup))
@@ -102,9 +116,7 @@ func runFestival(ctx context.Context, name string) error {
 			ArtistName: e.artist.Name,
 			Include:    !dropped[i+1],
 		}
-		if e.setlist != nil {
-			entry.Tracks = e.setlist.Tracks
-		}
+		entry.Tracks = e.tracks
 		entries = append(entries, entry)
 	}
 
@@ -124,6 +136,9 @@ func runFestival(ctx context.Context, name string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("create festival playlist: %w", err)
+	}
+	if err := discardToken(); err != nil {
+		return fmt.Errorf("discard token: %w", err)
 	}
 
 	fmt.Println()

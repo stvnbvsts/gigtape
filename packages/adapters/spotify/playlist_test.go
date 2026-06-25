@@ -57,7 +57,7 @@ func (m *multiplexServer) callCount(methodPath string) int {
 func TestPlaylistDestination_CreatePlaylist_HappyPath(t *testing.T) {
 	mux := newMux()
 
-	mux.handle("POST /users/user-123/playlists", func(w http.ResponseWriter, r *http.Request) {
+	mux.handle("POST /me/playlists", func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
 		assert.Equal(t, "Radiohead — 2024-04-12", body["name"])
@@ -75,7 +75,7 @@ func TestPlaylistDestination_CreatePlaylist_HappyPath(t *testing.T) {
 		}
 		_, _ = w.Write([]byte(`{"tracks":{"items":[]}}`))
 	})
-	mux.handle("POST /playlists/pl-1/tracks", func(w http.ResponseWriter, r *http.Request) {
+	mux.handle("POST /playlists/pl-1/items", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			URIs []string `json:"uris"`
 		}
@@ -102,12 +102,12 @@ func TestPlaylistDestination_CreatePlaylist_HappyPath(t *testing.T) {
 	assert.Equal(t, "https://open.spotify.com/playlist/pl-1", res.PlaylistURL)
 	assert.Len(t, res.MatchedTracks, 1)
 	assert.Equal(t, []string{"Rare B-Side"}, res.UnmatchedTracks)
-	assert.Equal(t, 1, mux.callCount("POST /playlists/pl-1/tracks"))
+	assert.Equal(t, 1, mux.callCount("POST /playlists/pl-1/items"))
 }
 
 func TestPlaylistDestination_CreatePlaylist_NonCreatedReturnsBodyError(t *testing.T) {
 	mux := newMux()
-	mux.handle("POST /users/u/playlists", func(w http.ResponseWriter, _ *http.Request) {
+	mux.handle("POST /me/playlists", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(`{"error":{"message":"bad name"}}`))
 	})
@@ -126,7 +126,7 @@ func TestPlaylistDestination_CreatePlaylist_NonCreatedReturnsBodyError(t *testin
 func TestPlaylistDestination_RetriesOn429(t *testing.T) {
 	mux := newMux()
 	attempts := 0
-	mux.handle("POST /users/u/playlists", func(w http.ResponseWriter, _ *http.Request) {
+	mux.handle("POST /me/playlists", func(w http.ResponseWriter, _ *http.Request) {
 		attempts++
 		if attempts == 1 {
 			w.Header().Set("Retry-After", "1") // test knob ignores actual seconds via fast clock? No — uses real time.After.
@@ -155,7 +155,7 @@ func TestPlaylistDestination_BatchesTracksAbove100(t *testing.T) {
 	// 205 tracks → 3 batches (100 + 100 + 5).
 	const n = 205
 	mux := newMux()
-	mux.handle("POST /users/u/playlists", func(w http.ResponseWriter, _ *http.Request) {
+	mux.handle("POST /me/playlists", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 		_, _ = w.Write([]byte(`{"id":"pl","external_urls":{"spotify":"https://x"}}`))
 	})
@@ -165,7 +165,7 @@ func TestPlaylistDestination_BatchesTracksAbove100(t *testing.T) {
 
 	batchSizes := []int{}
 	var mu sync.Mutex
-	mux.handle("POST /playlists/pl/tracks", func(w http.ResponseWriter, r *http.Request) {
+	mux.handle("POST /playlists/pl/items", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			URIs []string `json:"uris"`
 		}

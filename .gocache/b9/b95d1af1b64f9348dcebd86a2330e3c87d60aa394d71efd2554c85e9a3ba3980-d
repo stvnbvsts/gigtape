@@ -1,0 +1,6 @@
+./auth.go
+./playlist.go
+./search.go
+./auth_test.go
+./playlist_test.go
+./search_test.go

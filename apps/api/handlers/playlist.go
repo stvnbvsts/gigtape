@@ -103,6 +103,7 @@ func CreateArtistPlaylist(factory DestinationFactory, reporter usecases.ErrorRep
 			})
 			return
 		}
+		middleware.DeleteSession(sess.ID)
 		c.JSON(http.StatusOK, toResultJSON(result))
 	}
 }
@@ -205,6 +206,7 @@ func CreateFestivalPlaylist(factory DestinationFactory, reporter usecases.ErrorR
 		if mode == usecases.ModePerArtist && succeeded > 0 && failed > 0 {
 			status = http.StatusMultiStatus
 		}
+		middleware.DeleteSession(sess.ID)
 		c.JSON(status, gin.H{"results": out})
 	}
 }

@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
+  clearSessionId,
   createFestivalPlaylist,
   type FestivalArtistEntry,
   type FestivalResultEntry,
@@ -53,6 +54,7 @@ async function submit() {
       'gigtape_festival_results',
       JSON.stringify(res.results as FestivalResultEntry[]),
     )
+    clearSessionId()
     router.push('/festival/result')
   } catch (e) {
     error.value = (e as Error).message
