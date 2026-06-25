@@ -1,6 +1,0 @@
-./client.go
-./event_provider.go
-./setlist_provider.go
-./client_test.go
-./event_provider_test.go
-./setlist_provider_test.go
