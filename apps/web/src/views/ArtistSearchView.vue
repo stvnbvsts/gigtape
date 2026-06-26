@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  consumeOAuthError,
-  getAuthUrl,
   getSessionId,
   searchArtists,
   setSessionId,
@@ -14,41 +12,8 @@ const query = ref('')
 const artists = ref<Artist[]>([])
 const loading = ref(false)
 const error = ref('')
-const oauthBanner = ref('')
 const manualSession = ref('')
 const router = useRouter()
-const authUrl = ref('')
-
-onMounted(() => {
-  const code = consumeOAuthError()
-  if (code) {
-    oauthBanner.value =
-      code === 'profile_error'
-        ? 'We could not retrieve your Spotify profile. Please try again.'
-        : 'OAuth handshake failed. Please try connecting your Spotify account again.'
-  }
-  getAuthUrl()
-    .then((r) => (authUrl.value = r.auth_url))
-    .catch(() => {})
-})
-
-async function connectSpotify() {
-  oauthBanner.value = ''
-  // Navigate synchronously on click — some browsers (Safari, Arc) drop the
-  // user-gesture flag if location.href is set after an awaited fetch,
-  // silently swallowing the redirect. authUrl is prefetched on mount so the
-  // click handler itself never awaits before navigating.
-  if (authUrl.value) {
-    window.location.href = authUrl.value
-    return
-  }
-  try {
-    const { auth_url } = await getAuthUrl()
-    window.location.href = auth_url
-  } catch (e) {
-    error.value = (e as Error).message
-  }
-}
 
 async function onSearch() {
   error.value = ''
@@ -83,36 +48,40 @@ function applyManualSession() {
 </script>
 
 <template>
-  <section class="artist-search">
-    <h1>Gigtape</h1>
-    <p>Create a Spotify playlist from an artist's recent setlists.</p>
+  <section>
+    <div class="gt-tape-title">Find a band</div>
+    <p class="gt-sub gt-screen-sub">Who are you about to go see?</p>
 
-    <p v-if="oauthBanner" class="banner" role="alert">{{ oauthBanner }}</p>
-
-    <button type="button" @click="connectSpotify">Connect Spotify</button>
-    <p>
-      Looking for a festival?
-      <router-link to="/festival">Festival mode →</router-link>
-    </p>
-
-    <form @submit.prevent="onSearch">
-      <input v-model="query" placeholder="Artist name" />
-      <button type="submit" :disabled="loading">Search</button>
+    <form class="gt-row" @submit.prevent="onSearch">
+      <input v-model="query" class="gt-input" placeholder="artist name…" />
+      <button class="gt-btn gt-btn--sm" type="submit" :disabled="loading">GO</button>
     </form>
 
-    <p v-if="error" class="error">{{ error }}</p>
+    <p v-if="error" class="gt-panel gt-screen-message" role="alert">{{ error }}</p>
 
-    <ul v-if="artists.length" class="artist-list">
-      <li v-for="a in artists" :key="a.external_ref">
-        <button type="button" @click="pick(a)">
-          <strong>{{ a.name }}</strong>
-          <span v-if="a.disambiguation"> — {{ a.disambiguation }}</span>
-        </button>
-      </li>
-    </ul>
-    <p v-else-if="!loading && query">No artists found.</p>
+    <div v-if="artists.length" class="gt-search-results">
+      <div class="gt-eyebrow">{{ artists.length }} RESULTS</div>
+      <button
+        v-for="a in artists"
+        :key="a.external_ref"
+        type="button"
+        class="gt-result-card"
+        @click="pick(a)"
+      >
+        <span>
+          <span class="gt-result-card__name">{{ a.name }}</span>
+          <span v-if="a.disambiguation" class="gt-result-card__meta">{{ a.disambiguation }}</span>
+        </span>
+        <span class="gt-result-arrow">→</span>
+      </button>
+    </div>
+    <p v-else-if="!loading && query" class="gt-empty-note">No artists found.</p>
 
-    <details class="troubleshooting">
+    <button class="gt-link gt-link--hand gt-plain-link gt-festival-link" type="button" @click="router.push('/festival')">
+      Going to a festival? Make the whole lineup →
+    </button>
+
+    <details class="gt-details">
       <summary>Troubleshooting</summary>
       <p>
         If the backend is running without <code>WEB_REDIRECT_URL</code> set,
@@ -120,31 +89,10 @@ function applyManualSession() {
         <code>{ "session_id": "…" }</code> page instead of redirecting here.
         Paste the UUID below to resume.
       </p>
-      <input v-model="manualSession" placeholder="session id" />
-      <button type="button" @click="applyManualSession">Use session</button>
+      <div class="gt-row">
+        <input v-model="manualSession" class="gt-input" placeholder="session id" />
+        <button class="gt-btn gt-btn--sm" type="button" @click="applyManualSession">USE</button>
+      </div>
     </details>
   </section>
 </template>
-
-<style scoped>
-.artist-search {
-  max-width: 640px;
-  margin: 2rem auto;
-  font-family: system-ui, sans-serif;
-}
-.banner {
-  background: #fff3f3;
-  border: 1px solid #e0a0a0;
-  color: #900;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-}
-.error {
-  color: #b00;
-}
-.troubleshooting {
-  margin-top: 2rem;
-  font-size: 0.9em;
-  color: #555;
-}
-</style>

@@ -1,0 +1,679 @@
+/* ==========================================================================
+   gigtape.css — Mixtape redesign design system
+   --------------------------------------------------------------------------
+   Drop this into apps/web/src (e.g. src/styles/gigtape.css) and import it once
+   in main.ts:  import './styles/gigtape.css'
+
+   It provides:
+     1. Design tokens as CSS custom properties (:root)
+     2. A typography baseline + font @import
+     3. Reusable component classes (.gt-*) used across the Vue views
+
+   Vue notes:
+     - These are GLOBAL classes — use them in any <template>, no scoped <style>
+       needed for the shared bits. Per-view tweaks can still go in scoped styles.
+     - Override the accent per app or per route with: style="--gt-accent:#2a6fdb"
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Archivo+Black&family=Permanent+Marker&family=Caveat:wght@500;600;700&family=Courier+Prime:wght@400;700&display=swap');
+
+/* ------------------------------------------------------------------ tokens */
+:root {
+  /* surfaces */
+  --gt-desk:        #211c17;   /* backdrop behind the paper sheet */
+  --gt-desk-a:      #241f19;   /* desk stripe a */
+  --gt-desk-b:      #1f1a15;   /* desk stripe b */
+  --gt-paper:       #f4ecd8;   /* main sheet */
+  --gt-paper-inset: #fbf6e9;   /* inputs, cards, list items */
+  --gt-ink:         #1c1813;   /* near-black: cassette, buttons, headlines */
+  --gt-ink-text:    #231f1a;   /* body text on paper */
+  --gt-label-cream: #efe7d5;   /* cassette label face */
+
+  /* accent (only themeable token) */
+  --gt-accent:      #b5402a;   /* marker red */
+
+  /* text */
+  --gt-hand-brown:  #7a4a3a;   /* handwritten sub-headlines */
+  --gt-muted:       #9a8f78;
+  --gt-muted-2:     #8a8073;
+  --gt-muted-3:     #6f665b;
+
+  /* lines, borders, tape */
+  --gt-tape:        rgba(214,196,140,.6);
+  --gt-rule:        #e7d9b4;          /* notebook line */
+  --gt-border:      #cdbb8f;          /* input border */
+  --gt-border-soft: #ddcca3;          /* card border */
+  --gt-border-2:    #d8c79f;          /* list border */
+  --gt-hairline:    #cabd9e;          /* cassette divider */
+
+  /* warning / honesty panels */
+  --gt-warn-bg:     #f3e2c2;
+  --gt-warn-border: #c79a4a;
+  --gt-warn-text:   #8a5a1a;
+
+  /* spotify */
+  --gt-spotify:     #1DB954;
+  --gt-spotify-ink: #06371a;
+  --gt-spotify-ring:#14401f;
+
+  /* misc */
+  --gt-removed:     #b6a98a;          /* struck-through track title */
+  --gt-track-dur:   #a89c80;
+
+  /* spacing rhythm (optional helpers) */
+  --gt-pad-x:       22px;
+  --gt-col-max:     468px;
+
+  /* fonts */
+  --gt-font-display: 'Archivo Black', system-ui, sans-serif;
+  --gt-font-bold:    'Archivo', system-ui, sans-serif;
+  --gt-font-marker:  'Permanent Marker', cursive;
+  --gt-font-hand:    'Caveat', cursive;
+  --gt-font-mono:    'Courier Prime', monospace;
+}
+
+/* --------------------------------------------------------------- baseline */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+::selection { background: var(--gt-accent); color: var(--gt-paper); }
+
+/* ----------------------------------------------------------- app shell */
+/* The desk backdrop. Put this on the app root / router-view wrapper. */
+.gt-desk {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--gt-desk);
+  background-image: repeating-linear-gradient(90deg, var(--gt-desk-a) 0 2px, var(--gt-desk-b) 2px 5px);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  font-family: var(--gt-font-mono);
+  color: var(--gt-ink-text);
+}
+
+/* The centered paper column that holds a screen. */
+.gt-sheet {
+  position: relative;
+  width: 100%;
+  max-width: var(--gt-col-max);
+  min-height: 100vh;
+  background: var(--gt-paper);
+  box-shadow: 0 0 60px -10px rgba(0,0,0,.6);
+  overflow: hidden;
+}
+
+/* Halftone grain — add as the FIRST child of .gt-sheet (pointer-events:none). */
+.gt-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: .5;
+  background-image: radial-gradient(#0000000d 1px, transparent 1.4px);
+  background-size: 5px 5px;
+}
+
+/* Everything ABOVE the grain needs z-index >= 6. Wrap screen content in this. */
+.gt-layer { position: relative; z-index: 6; }
+
+.gt-content { position: relative; z-index: 6; padding: 18px var(--gt-pad-x) 40px; }
+
+/* --------------------------------------------------------------- top bar */
+.gt-topbar {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px var(--gt-pad-x) 10px;
+}
+.gt-topbar__back {
+  min-width: 70px;
+  font-family: var(--gt-font-hand);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--gt-hand-brown);
+  cursor: pointer;
+}
+.gt-topbar__back--hidden { visibility: hidden; }
+.gt-wordmark {
+  font-family: var(--gt-font-display);
+  font-size: 15px;
+  letter-spacing: .04em;
+  color: var(--gt-ink);
+  cursor: pointer;
+}
+.gt-step {
+  min-width: 70px;
+  text-align: right;
+  font-family: var(--gt-font-mono);
+  font-size: 10px;
+  letter-spacing: .04em;
+  color: var(--gt-muted);
+}
+.gt-rule-dashed {
+  position: relative;
+  z-index: 6;
+  height: 1px;
+  margin: 0 var(--gt-pad-x) 4px;
+  background: repeating-linear-gradient(90deg, var(--gt-hairline) 0 7px, transparent 7px 12px);
+}
+
+/* ------------------------------------------------------------ typography */
+.gt-h1 {
+  font-family: var(--gt-font-display);
+  font-size: 38px;
+  line-height: .98;
+  letter-spacing: -.02em;
+  color: var(--gt-ink);
+  margin: 0;
+  text-wrap: balance;
+}
+.gt-sub {            /* handwritten sub-headline */
+  font-family: var(--gt-font-hand);
+  font-weight: 600;
+  font-size: 22px;
+  color: var(--gt-hand-brown);
+  margin: 12px 0 0;
+  transform: rotate(-.4deg);
+}
+.gt-eyebrow {        /* courier section label, e.g. PICK A SHOW */
+  font-family: var(--gt-font-mono);
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--gt-muted);
+}
+.gt-attribution {
+  font-family: var(--gt-font-mono);
+  font-size: 9px;
+  letter-spacing: .06em;
+  color: var(--gt-muted);
+}
+
+/* Marker title sitting on a strip of masking tape. */
+.gt-tape-title {
+  display: inline-block;
+  background: var(--gt-tape);
+  padding: 8px 16px;
+  width: fit-content;
+  transform: rotate(-1deg);
+  box-shadow: 0 1px 0 rgba(0,0,0,.06);
+  font-family: var(--gt-font-marker);
+  font-size: 26px;
+  color: var(--gt-ink);
+}
+/* Inverted variant (festival) */
+.gt-tape-title--ink {
+  background: var(--gt-ink);
+  color: var(--gt-paper);
+  box-shadow: 3px 3px 0 var(--gt-accent);
+}
+
+/* --------------------------------------------------------------- buttons */
+/* Stamped primary button. Use on <button> (reset border) or a div. */
+.gt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  cursor: pointer;
+  background: var(--gt-ink);
+  color: var(--gt-paper);
+  font-family: var(--gt-font-display);
+  font-size: 18px;
+  padding: 16px 26px;
+  transform: rotate(-1deg);
+  box-shadow: 5px 5px 0 var(--gt-accent);
+  transition: transform .04s, box-shadow .04s;
+}
+.gt-btn:active {
+  transform: rotate(-1deg) translate(2px,2px);
+  box-shadow: 3px 3px 0 var(--gt-accent);
+}
+.gt-btn--block { width: 100%; justify-content: center; text-align: center; padding: 17px; }
+.gt-btn--sm    { font-size: 14px; padding: 0 18px; box-shadow: 3px 3px 0 var(--gt-accent); }
+.gt-btn--sm:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--gt-accent); }
+
+/* Spotify button (same shape, green) */
+.gt-btn--spotify {
+  background: var(--gt-spotify);
+  color: var(--gt-spotify-ink);
+  box-shadow: 5px 5px 0 var(--gt-spotify-ink);
+  text-decoration: none;
+  font-size: 16px;
+  padding: 15px 24px;
+}
+.gt-btn--spotify:active { box-shadow: 3px 3px 0 var(--gt-spotify-ink); }
+.gt-spotify-dot {
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--gt-spotify); box-shadow: 0 0 0 3px var(--gt-spotify-ring);
+}
+
+/* Text link with marker underline */
+.gt-link {
+  display: inline-block;
+  cursor: pointer;
+  font-family: var(--gt-font-bold);
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--gt-ink);
+  border-bottom: 2px solid var(--gt-accent);
+  text-decoration: none;
+}
+.gt-link--hand { font-family: var(--gt-font-hand); font-weight: 700; font-size: 21px; }
+
+/* --------------------------------------------------------------- inputs */
+.gt-input {
+  flex: 1;
+  width: 100%;
+  font-family: var(--gt-font-mono);
+  font-size: 15px;
+  padding: 13px 14px;
+  background: var(--gt-paper-inset);
+  border: 1.5px solid var(--gt-border);
+  border-radius: 2px;
+  color: var(--gt-ink-text);
+  outline: none;
+}
+.gt-input:focus { border-color: var(--gt-accent); }
+.gt-input--ghost {  /* borderless handwritten input inside the tracklist */
+  border: none; background: transparent;
+  font-family: var(--gt-font-hand); font-weight: 600; font-size: 20px;
+  color: #9a7a52; padding: 0;
+}
+.gt-input--hand {
+  font-family: var(--gt-font-hand);
+  font-weight: 600;
+  font-size: 19px;
+  padding: 8px 12px;
+  border-style: dashed;
+  color: #9a7a52;
+}
+.gt-row { display: flex; gap: 8px; align-items: center; }
+
+/* --------------------------------------------------------------- cassette */
+.gt-cassette {
+  background: var(--gt-ink);
+  border-radius: 11px;
+  padding: 15px;
+  box-shadow: 0 16px 34px -12px rgba(0,0,0,.55);
+}
+.gt-cassette__label {
+  background: var(--gt-label-cream);
+  border-radius: 3px;
+  padding: 13px 14px;
+}
+.gt-cassette__divider { height: 1px; background: var(--gt-hairline); margin: 10px 0; }
+.gt-cassette__reels { display: flex; justify-content: center; gap: 54px; padding: 4px 0 2px; }
+.gt-side {  /* "SIDE A" marker tag */
+  font-family: var(--gt-font-marker);
+  font-size: 13px;
+  color: var(--gt-accent);
+}
+.gt-cassette__name {
+  font-family: var(--gt-font-marker);
+  font-size: 23px;
+  color: var(--gt-ink);
+  line-height: 1;
+}
+
+/* Spinning reel. Markup:
+   <div class="gt-reel"><div class="gt-reel__hub"></div></div>
+   Use .gt-reel--fast on the second reel for a parallax difference. */
+.gt-reel {
+  width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle, var(--gt-label-cream) 0 7px, #bcae8e 7px 18px, var(--gt-label-cream) 18px 20px, transparent 20px);
+  animation: gt-spin 7s linear infinite;
+}
+.gt-reel--fast { animation-duration: 4.5s;
+  background: radial-gradient(circle, var(--gt-label-cream) 0 7px, #bcae8e 7px 14px, var(--gt-label-cream) 14px 16px, transparent 16px);
+}
+.gt-reel__hub {
+  width: 15px; height: 15px; border-radius: 50%;
+  background: conic-gradient(var(--gt-ink) 0 30deg, var(--gt-label-cream) 30deg 60deg, var(--gt-ink) 60deg 90deg, var(--gt-label-cream) 90deg 120deg, var(--gt-ink) 120deg 150deg, var(--gt-label-cream) 150deg 180deg, var(--gt-ink) 180deg 210deg, var(--gt-label-cream) 210deg 240deg, var(--gt-ink) 240deg 270deg, var(--gt-label-cream) 270deg 300deg, var(--gt-ink) 300deg 330deg, var(--gt-label-cream) 330deg 360deg);
+}
+@keyframes gt-spin { to { transform: rotate(360deg); } }
+
+/* ----------------------------------------------------- show tabs (setlist) */
+.gt-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.gt-tab {
+  cursor: pointer;
+  padding: 8px 12px;
+  border: 1px solid #d3c29a;
+  background: var(--gt-paper-inset);
+  color: var(--gt-ink);
+}
+.gt-tab--active {
+  background: var(--gt-ink);
+  color: var(--gt-paper);
+  box-shadow: 3px 3px 0 var(--gt-accent);
+}
+.gt-tab__title { font-family: var(--gt-font-bold); font-weight: 700; font-size: 12px; line-height: 1.2; }
+.gt-tab__title,
+.gt-tab__meta { display: block; }
+.gt-tab__meta  { font-family: var(--gt-font-mono); font-size: 10px; opacity: .8; margin-top: 2px; }
+
+/* ---------------------------------------------------- lined tracklist */
+.gt-list {
+  background: repeating-linear-gradient(var(--gt-paper-inset) 0 33px, var(--gt-rule) 33px 34px);
+  border: 1px solid var(--gt-border-2);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.05);
+  padding: 4px 16px 6px;
+}
+.gt-track {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  height: 34px;               /* sit on a rule line */
+}
+.gt-track__num {
+  font-family: var(--gt-font-marker);
+  font-size: 13px;
+  color: var(--gt-accent);
+  width: 24px;
+  flex-shrink: 0;
+}
+.gt-track__title {
+  flex: 1;
+  font-family: var(--gt-font-hand);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 34px;
+  color: var(--gt-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gt-track__dur {
+  font-family: var(--gt-font-mono);
+  font-size: 11px;
+  color: var(--gt-track-dur);
+  flex-shrink: 0;
+}
+.gt-track__toggle {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  width: 22px;
+  text-align: center;
+  font-family: var(--gt-font-hand);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--gt-track-dur);
+  flex-shrink: 0;
+}
+/* Removed-track state: add .gt-track--removed to the row */
+.gt-track--removed .gt-track__num    { color: var(--gt-track-dur); }
+.gt-track--removed .gt-track__title  { color: var(--gt-removed); text-decoration: line-through; }
+.gt-track--removed .gt-track__toggle { color: var(--gt-accent); }   /* the ↩ restore */
+
+/* ------------------------------------------------ festival lineup rows */
+.gt-artist {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 13px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  background: var(--gt-paper-inset);
+  border: 1px solid var(--gt-border-soft);
+  text-align: left;
+}
+.gt-artist--off { background: #efe7d3; opacity: .5; }
+.gt-check {
+  width: 22px; height: 22px; flex-shrink: 0;
+  border: 2px solid var(--gt-ink);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--gt-font-hand); font-weight: 700; font-size: 18px;
+  color: var(--gt-paper);
+  background: transparent;
+}
+.gt-check--on { background: var(--gt-ink); }
+.gt-artist__name { flex: 1; font-family: var(--gt-font-bold); font-weight: 700; font-size: 15px; color: var(--gt-ink); }
+.gt-artist__meta { font-family: var(--gt-font-mono); font-size: 10px; color: var(--gt-muted-2); }
+.gt-artist__meta--nodata { color: var(--gt-accent); }
+.gt-artist-block { margin-bottom: 10px; }
+.gt-mini-tracks {
+  margin: -2px 0 6px 34px;
+  padding-left: 10px;
+  border-left: 2px solid var(--gt-rule);
+}
+.gt-mini-track {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--gt-font-hand);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--gt-hand-brown);
+}
+.gt-mini-track button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--gt-muted);
+}
+.gt-manual-song {
+  margin: -2px 0 8px 34px;
+}
+
+/* Mode selector cards (ONE BIG TAPE / A TAPE EACH) */
+.gt-mode {
+  flex: 1; cursor: pointer; padding: 13px;
+  border: 1.5px solid var(--gt-ink);
+  background: var(--gt-paper-inset);
+  text-align: left;
+}
+.gt-mode--active { background: var(--gt-ink); box-shadow: 4px 4px 0 var(--gt-accent); }
+.gt-mode__title { font-family: var(--gt-font-display); font-size: 14px; color: var(--gt-ink); }
+.gt-mode--active .gt-mode__title { color: var(--gt-paper); }
+.gt-mode__sub   { font-family: var(--gt-font-mono); font-size: 10px; color: var(--gt-muted-2); margin-top: 3px; }
+.gt-mode--active .gt-mode__sub { color: var(--gt-hairline); }
+.gt-mode__title,
+.gt-mode__sub { display: block; }
+
+/* --------------------------------------------- result cards & honesty panels */
+.gt-result-card {   /* search result / per-artist tape row */
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  background: var(--gt-paper-inset);
+  border: 1px solid var(--gt-border-soft);
+  border-left: 5px solid var(--gt-accent);
+  padding: 13px 15px;
+  margin-bottom: 11px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(0,0,0,.05);
+  text-decoration: none;
+}
+.gt-result-card:hover { background: #fff9ec; }
+.gt-result-card--spotify { border-left-color: var(--gt-spotify); }
+.gt-result-card__name { flex: 1; font-family: var(--gt-font-bold); font-weight: 800; font-size: 17px; color: var(--gt-ink); }
+.gt-result-card__meta { display: block; font-family: var(--gt-font-mono); font-size: 11px; color: var(--gt-muted-2); }
+
+/* Warning + "couldn't find / skipped" honesty panel (dashed) */
+.gt-panel {
+  background: var(--gt-warn-bg);
+  border: 1px dashed var(--gt-warn-border);
+  padding: 12px 14px;
+}
+.gt-panel__label { font-family: var(--gt-font-mono); font-size: 11px; letter-spacing: .05em; color: var(--gt-warn-text); margin-bottom: 6px; }
+.gt-panel__item  { font-family: var(--gt-font-hand); font-weight: 600; font-size: 19px; color: var(--gt-warn-text); line-height: 1.3; }
+
+/* --------------------------------------------------------- small helpers */
+.gt-tilt-l  { transform: rotate(-1deg); }
+.gt-tilt-r  { transform: rotate(1.3deg); }
+.gt-center  { text-align: center; }
+
+.gt-screen-sub { margin-bottom: 16px; }
+.gt-section-label { margin: 18px 0 9px; }
+.gt-tab-caption { margin: 8px 0 14px; }
+.gt-bottom-caption { margin-top: 14px; }
+.gt-screen-message { margin: 14px 0; }
+.gt-loading {
+  font-family: var(--gt-font-hand);
+  font-size: 21px;
+  color: var(--gt-hand-brown);
+}
+.gt-warning-row {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  font-family: var(--gt-font-hand);
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--gt-warn-text);
+  line-height: 1.2;
+}
+.gt-track-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  font-family: var(--gt-font-mono);
+  font-size: 11px;
+  color: var(--gt-muted-3);
+}
+.gt-track-footer span:last-child { color: var(--gt-muted); }
+.gt-track-add {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--gt-font-display);
+  font-size: 13px;
+  color: var(--gt-accent);
+}
+.gt-manual-track { gap: 9px; }
+.gt-create-btn { margin-top: 16px; }
+.gt-create-btn:disabled,
+.gt-btn:disabled,
+.gt-btn--sm:disabled {
+  cursor: not-allowed;
+  opacity: .62;
+}
+.gt-hero-cassette {
+  width: min(284px, 100%);
+  margin: 14px auto 4px;
+  transform: rotate(-1.6deg);
+}
+.gt-cassette-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+}
+.gt-landing-title { margin-top: 26px; }
+.gt-connect-btn { margin-top: 30px; }
+.gt-festival-link { margin-top: 22px; }
+.gt-footer-note {
+  margin-top: 34px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--gt-hairline);
+  font-family: var(--gt-font-mono);
+  font-size: 10px;
+  color: var(--gt-muted);
+  line-height: 1.7;
+  letter-spacing: .03em;
+}
+.gt-plain-link {
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  background: transparent;
+  padding: 0 0 1px;
+}
+.gt-search-results { margin-top: 24px; }
+.gt-result-arrow {
+  font-family: var(--gt-font-hand);
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--gt-accent);
+}
+.gt-empty-note {
+  font-family: var(--gt-font-hand);
+  font-size: 20px;
+  color: var(--gt-hand-brown);
+}
+.gt-details {
+  margin-top: 28px;
+  font-family: var(--gt-font-mono);
+  font-size: 11px;
+  color: var(--gt-muted-2);
+}
+.gt-details summary {
+  cursor: pointer;
+  font-family: var(--gt-font-bold);
+  font-weight: 800;
+  color: var(--gt-ink);
+}
+.gt-result-eyebrow {
+  font-family: var(--gt-font-marker);
+  font-size: 15px;
+  color: var(--gt-accent);
+  letter-spacing: .04em;
+  transform: rotate(-1.4deg);
+}
+.gt-result-cassette {
+  width: min(300px, 100%);
+  margin: 18px auto 0;
+  transform: rotate(1.3deg);
+}
+.gt-result-copy {
+  font-family: var(--gt-font-hand);
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--gt-ink);
+  margin: 20px 0 0;
+}
+.gt-result-signoff {
+  font-family: var(--gt-font-hand);
+  font-weight: 700;
+  font-size: 21px;
+  color: var(--gt-hand-brown);
+  margin: 24px 0 0;
+  transform: rotate(-.5deg);
+}
+.gt-browser-fallback {
+  display: block;
+  margin-top: 12px;
+  font-family: var(--gt-font-mono);
+  font-size: 10px;
+  color: var(--gt-muted-2);
+}
+.gt-festival-event {
+  margin-top: 22px;
+}
+.gt-event-name {
+  font-family: var(--gt-font-bold);
+  font-weight: 800;
+  font-size: 19px;
+  color: var(--gt-ink);
+}
+.gt-event-meta {
+  font-family: var(--gt-font-mono);
+  font-size: 11px;
+  color: var(--gt-muted-2);
+  margin: 3px 0 16px;
+}
+.gt-mode-row { display: flex; gap: 10px; }
+.gt-cassette-meta {
+  font-family: var(--gt-font-mono);
+  font-size: 10px;
+  color: #7a6f5a;
+  margin-top: 6px;
+}
+.gt-cassette-subtitle {
+  font-size: 12px;
+  color: var(--gt-hand-brown);
+}
+.gt-result-open { margin-top: 16px; }
+.gt-result-panel {
+  margin-top: 24px;
+  text-align: left;
+}

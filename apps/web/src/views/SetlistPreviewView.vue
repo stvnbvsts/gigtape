@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   clearSessionId,
@@ -16,6 +16,7 @@ const router = useRouter()
 const setlists = ref<Setlist[]>([])
 const selectedIdx = ref(0)
 const tracks = ref<Track[]>([])
+const removedIndexes = ref<number[]>([])
 const manualTitle = ref('')
 const error = ref('')
 const loading = ref(false)
@@ -33,6 +34,7 @@ onMounted(async () => {
     shortWarning.value = res.short_warning
     if (setlists.value.length > 0) {
       tracks.value = [...setlists.value[0].tracks]
+      removedIndexes.value = []
     }
   } catch (e) {
     error.value = (e as Error).message
@@ -44,10 +46,15 @@ onMounted(async () => {
 function selectSetlist(i: number) {
   selectedIdx.value = i
   tracks.value = [...setlists.value[i].tracks]
+  removedIndexes.value = []
 }
 
-function removeTrack(index: number) {
-  tracks.value.splice(index, 1)
+function toggleTrack(index: number) {
+  if (removedIndexes.value.includes(index)) {
+    removedIndexes.value = removedIndexes.value.filter((i) => i !== index)
+  } else {
+    removedIndexes.value = [...removedIndexes.value, index]
+  }
 }
 
 function addManualTrack() {
@@ -55,6 +62,15 @@ function addManualTrack() {
   if (!title) return
   tracks.value.push({ title, artist_name: artistName })
   manualTitle.value = ''
+}
+
+const keptTracks = computed(() => tracks.value.filter((_, i) => !removedIndexes.value.includes(i)))
+const keptCount = computed(() => keptTracks.value.length)
+const totalTime = computed(() => '00:00')
+const currentSetlist = computed(() => setlists.value[selectedIdx.value])
+
+function formatLocation(s: Setlist) {
+  return s.event_name || 'recent show'
 }
 
 async function createPlaylist() {
@@ -68,7 +84,7 @@ async function createPlaylist() {
       artist_name: artistName,
       setlist_index: selectedIdx.value,
       event_date: eventDate,
-      tracks: tracks.value,
+      tracks: keptTracks.value,
     })
     clearSessionId()
     router.push({ path: '/result', state: { result: JSON.parse(JSON.stringify(result)) } })
@@ -82,73 +98,79 @@ async function createPlaylist() {
 </script>
 
 <template>
-  <section class="setlist-preview">
-    <h1>{{ artistName }}</h1>
-    <p v-if="loading">Loading setlists…</p>
-    <p v-if="error" class="error">{{ error }}</p>
+  <section>
+    <div class="gt-tape-title">{{ artistName || 'Setlist' }}</div>
+    <p class="gt-sub gt-screen-sub">songs they've been playing live ♪</p>
+
+    <p v-if="loading" class="gt-loading">Loading setlists…</p>
+    <p v-if="error" class="gt-panel gt-screen-message" role="alert">{{ error }}</p>
 
     <template v-if="!loading && setlists.length > 0">
-      <div v-if="setlists.length > 1" class="setlist-selector">
-        <label>Choose setlist:</label>
-        <select :value="selectedIdx" @change="selectSetlist(Number(($event.target as HTMLSelectElement).value))">
-          <option v-for="(s, i) in setlists" :key="i" :value="i">
-            {{ s.date }} — {{ s.event_name }} ({{ s.track_count }} songs)
-          </option>
-        </select>
+      <div class="gt-eyebrow gt-section-label">PICK A SHOW</div>
+      <div class="gt-tabs">
+        <button
+          v-for="(s, i) in setlists"
+          :key="`${s.date}-${i}`"
+          type="button"
+          class="gt-tab"
+          :class="{ 'gt-tab--active': selectedIdx === i }"
+          @click="selectSetlist(i)"
+        >
+          <span class="gt-tab__title">{{ s.event_name || 'Recent show' }}</span>
+          <span class="gt-tab__meta">{{ s.date }} · {{ formatLocation(s) }}</span>
+        </button>
       </div>
 
-      <p class="event-meta">
-        {{ setlists[selectedIdx].date }} — {{ setlists[selectedIdx].event_name }}
-      </p>
       <!-- setlist.fm attribution is required wherever setlist data appears -->
-      <p class="attribution">{{ setlists[selectedIdx].source_attribution }}</p>
-
-      <p v-if="shortWarning" class="warning">
-        ⚠ Only {{ setlists[selectedIdx].track_count }} songs — setlist may be incomplete.
+      <p class="gt-attribution gt-tab-caption">
+        {{ currentSetlist?.source_attribution || 'via setlist.fm' }} · {{ setlists.length }} recent shows
       </p>
 
-      <TrackList :tracks="tracks" @remove="removeTrack" />
+      <div v-if="shortWarning" class="gt-panel gt-warning-row">
+        <span aria-hidden="true">⚠</span>
+        <span>
+          Only {{ currentSetlist?.track_count || tracks.length }} songs logged for this show — the setlist
+          may be incomplete. Add any you remember.
+        </span>
+      </div>
 
-      <form class="manual-add" @submit.prevent="addManualTrack">
-        <input v-model="manualTitle" placeholder="Add a track manually" />
-        <button type="submit">Add</button>
-      </form>
+      <TrackList :tracks="tracks" :removed-indexes="removedIndexes" @toggle="toggleTrack">
+        <form class="gt-track gt-manual-track" @submit.prevent="addManualTrack">
+          <input v-model="manualTitle" class="gt-input gt-input--ghost" placeholder="+ add a song you remember…" />
+          <button class="gt-track-add" type="submit">ADD</button>
+        </form>
+      </TrackList>
 
-      <button type="button" :disabled="creating || tracks.length === 0" @click="createPlaylist">
-        {{ creating ? 'Creating…' : 'Create Playlist' }}
+      <div class="gt-track-footer">
+        <span>{{ keptCount }} SONGS · {{ totalTime }}</span>
+        <span>SIDE A</span>
+      </div>
+
+      <button class="gt-btn gt-btn--block gt-create-btn" type="button" :disabled="creating || keptCount === 0" @click="createPlaylist">
+        {{ creating ? 'CREATING…' : 'MAKE THE TAPE →' }}
       </button>
+      <p class="gt-attribution gt-center gt-bottom-caption">SETLIST DATA PROVIDED BY SETLIST.FM</p>
     </template>
 
     <template v-else-if="!loading">
       <!-- Empty state: FR-009 — allow manual entry when no setlist is available. -->
-      <p>No setlists found for this artist.</p>
-      <p>Add tracks manually:</p>
-      <TrackList :tracks="tracks" @remove="removeTrack" />
-      <form class="manual-add" @submit.prevent="addManualTrack">
-        <input v-model="manualTitle" placeholder="Track title" />
-        <button type="submit">Add</button>
-      </form>
-      <button type="button" :disabled="creating || tracks.length === 0" @click="createPlaylist">
-        {{ creating ? 'Creating…' : 'Create Playlist' }}
+      <div class="gt-panel gt-warning-row">
+        <span aria-hidden="true">⚠</span>
+        <span>No setlists found for this artist. Add the songs you remember.</span>
+      </div>
+      <TrackList :tracks="tracks" :removed-indexes="removedIndexes" @toggle="toggleTrack">
+        <form class="gt-track gt-manual-track" @submit.prevent="addManualTrack">
+          <input v-model="manualTitle" class="gt-input gt-input--ghost" placeholder="+ add a song you remember…" />
+          <button class="gt-track-add" type="submit">ADD</button>
+        </form>
+      </TrackList>
+      <div class="gt-track-footer">
+        <span>{{ keptCount }} SONGS · {{ totalTime }}</span>
+        <span>SIDE A</span>
+      </div>
+      <button class="gt-btn gt-btn--block gt-create-btn" type="button" :disabled="creating || keptCount === 0" @click="createPlaylist">
+        {{ creating ? 'CREATING…' : 'MAKE THE TAPE →' }}
       </button>
     </template>
   </section>
 </template>
-
-<style scoped>
-.setlist-preview {
-  max-width: 640px;
-  margin: 2rem auto;
-  font-family: system-ui, sans-serif;
-}
-.attribution {
-  font-size: 0.9em;
-  color: #555;
-}
-.warning {
-  color: #a60;
-}
-.error {
-  color: #b00;
-}
-</style>

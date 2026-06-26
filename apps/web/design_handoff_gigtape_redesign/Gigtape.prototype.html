@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Archivo+Black&family=Permanent+Marker&family=Caveat:wght@500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+*{box-sizing:border-box}
+html,body{margin:0}
+::selection{background:#b5402a;color:#f4ecd8}
+.gt-scroll::-webkit-scrollbar{width:0}
+</style>
+</helmet>
+
+<div style="--accent:{{ accent }}; --grain:{{ grainOpacity }}; min-height:100vh; background:#211c17; background-image:repeating-linear-gradient(90deg,#241f19 0 2px,#1f1a15 2px 5px); display:flex; justify-content:center; align-items:flex-start; font-family:'Courier Prime',monospace;">
+  <div style="position:relative; width:100%; max-width:468px; min-height:100vh; background:#f4ecd8; color:#231f1a; box-shadow:0 0 60px -10px rgba(0,0,0,.6); overflow:hidden;">
+    <div style="position:absolute; inset:0; pointer-events:none; z-index:5; opacity:var(--grain,.5); background-image:radial-gradient(#0000000d 1px, transparent 1.4px); background-size:5px 5px;"></div>
+
+    <!-- top bar -->
+    <div style="position:relative; z-index:6; display:flex; align-items:center; justify-content:space-between; padding:16px 22px 10px;">
+      <div onClick="{{ onBack }}" style="min-width:70px; font-family:'Caveat',cursive; font-weight:700; font-size:19px; color:#7a4a3a; cursor:pointer; visibility:{{ backVis }};">← back</div>
+      <div onClick="{{ goLanding }}" style="font-family:'Archivo Black',sans-serif; font-size:15px; letter-spacing:.04em; color:#1c1813; cursor:pointer;">GIGTAPE</div>
+      <div style="min-width:70px; text-align:right; font-family:'Courier Prime',monospace; font-size:10px; color:#9a8f78; letter-spacing:.04em;">{{ stepTag }}</div>
+    </div>
+    <div style="position:relative; z-index:6; height:1px; margin:0 22px 4px; background:repeating-linear-gradient(90deg,#c9bd9f 0 7px,transparent 7px 12px);"></div>
+
+    <div style="position:relative; z-index:6; padding:18px 22px 40px;">
+
+      <!-- ============ LANDING ============ -->
+      <sc-if value="{{ isLanding }}" hint-placeholder-val="{{ true }}">
+        <div style="">
+          <div style="width:284px; margin:14px auto 4px; background:#1c1813; border-radius:11px; padding:15px; box-shadow:0 16px 34px -12px rgba(0,0,0,.55); transform:rotate(-1.6deg);">
+            <div style="background:#efe7d5; border-radius:3px; padding:13px 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-end;"><span style="font-family:'Permanent Marker',cursive; font-size:23px; color:#1c1813; line-height:1;">Gigtape</span><span style="font-family:'Permanent Marker',cursive; font-size:13px; color:var(--accent,#b5402a);">SIDE A</span></div>
+              <div style="height:1px; background:#cabd9e; margin:10px 0;"></div>
+              <div style="display:flex; justify-content:center; gap:54px; padding:4px 0 2px;">
+                <div style="width:44px; height:44px; border-radius:50%; background:radial-gradient(circle,#efe7d5 0 7px,#bcae8e 7px 18px,#efe7d5 18px 20px,transparent 20px); display:flex; align-items:center; justify-content:center; animation:spin 7s linear infinite;"><div style="width:15px; height:15px; border-radius:50%; background:conic-gradient(#1c1813 0 30deg,#efe7d5 30deg 60deg,#1c1813 60deg 90deg,#efe7d5 90deg 120deg,#1c1813 120deg 150deg,#efe7d5 150deg 180deg,#1c1813 180deg 210deg,#efe7d5 210deg 240deg,#1c1813 240deg 270deg,#efe7d5 270deg 300deg,#1c1813 300deg 330deg,#efe7d5 330deg 360deg);"></div></div>
+                <div style="width:44px; height:44px; border-radius:50%; background:radial-gradient(circle,#efe7d5 0 7px,#bcae8e 7px 14px,#efe7d5 14px 16px,transparent 16px); display:flex; align-items:center; justify-content:center; animation:spin 4.5s linear infinite;"><div style="width:15px; height:15px; border-radius:50%; background:conic-gradient(#1c1813 0 30deg,#efe7d5 30deg 60deg,#1c1813 60deg 90deg,#efe7d5 90deg 120deg,#1c1813 120deg 150deg,#efe7d5 150deg 180deg,#1c1813 180deg 210deg,#efe7d5 210deg 240deg,#1c1813 240deg 270deg,#efe7d5 270deg 300deg,#1c1813 300deg 330deg,#efe7d5 330deg 360deg);"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <h1 style="font-family:'Archivo Black',sans-serif; font-size:38px; line-height:.98; letter-spacing:-.02em; color:#1c1813; margin:26px 0 0; text-wrap:balance;">Make the tape<br>before the show.</h1>
+          <p style="font-family:'Caveat',cursive; font-weight:600; font-size:22px; color:#7a4a3a; margin:12px 0 0; transform:rotate(-.4deg);">Turn any band's live setlist into a Spotify playlist — a mixtape for the gig you're about to see. ♪</p>
+
+          <div onClick="{{ goSearch }}" style="margin:30px 0 0; display:inline-flex; align-items:center; gap:12px; background:#1c1813; color:#f4ecd8; font-family:'Archivo Black',sans-serif; font-size:18px; padding:16px 26px; transform:rotate(-1.1deg); box-shadow:5px 5px 0 var(--accent,#b5402a); cursor:pointer;" style-active="transform:rotate(-1.1deg) translate(2px,2px); box-shadow:3px 3px 0 var(--accent,#b5402a);">
+            <span style="width:13px; height:13px; border-radius:50%; background:#1DB954; box-shadow:0 0 0 3px #14401f;"></span> Connect Spotify
+          </div>
+
+          <div onClick="{{ goFestival }}" style="margin:22px 0 0; font-family:'Caveat',cursive; font-weight:700; font-size:21px; color:#1c1813; cursor:pointer; border-bottom:2px solid var(--accent,#b5402a); display:inline-block; padding-bottom:1px;">Going to a festival? Make the whole lineup →</div>
+
+          <div style="margin-top:34px; padding-top:16px; border-top:1px dashed #cabd9e; font-family:'Courier Prime',monospace; font-size:10px; color:#9a8f78; line-height:1.7; letter-spacing:.03em;">
+            NO ACCOUNT STORED · NOTHING SAVED · IN &amp; OUT<br>SETLIST DATA PROVIDED BY SETLIST.FM
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ ARTIST SEARCH ============ -->
+      <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ true }}">
+        <div style="">
+          <div style="background:rgba(214,196,140,.6); padding:8px 16px; transform:rotate(-1deg); width:fit-content; box-shadow:0 1px 0 rgba(0,0,0,.06);"><span style="font-family:'Permanent Marker',cursive; font-size:26px; color:#1c1813;">Find a band</span></div>
+          <p style="font-family:'Caveat',cursive; font-weight:600; font-size:20px; color:#7a4a3a; margin:14px 0 18px;">Who are you about to go see?</p>
+
+          <div style="display:flex; gap:8px;">
+            <input value="{{ query }}" onInput="{{ onQuery }}" onKeyDown="{{ onQueryKey }}" placeholder="artist name…" style="flex:1; font-family:'Courier Prime',monospace; font-size:15px; padding:13px 14px; background:#fbf6e9; border:1.5px solid #cdbb8f; border-radius:2px; color:#231f1a; outline:none;" style-focus="border-color:var(--accent,#b5402a);">
+            <div onClick="{{ doSearch }}" style="display:flex; align-items:center; background:#1c1813; color:#f4ecd8; font-family:'Archivo Black',sans-serif; font-size:14px; padding:0 18px; cursor:pointer; box-shadow:3px 3px 0 var(--accent,#b5402a);" style-active="transform:translate(2px,2px); box-shadow:1px 1px 0 var(--accent,#b5402a);">GO</div>
+          </div>
+
+          <sc-if value="{{ searched }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-top:24px;">
+              <div style="font-family:'Courier Prime',monospace; font-size:11px; letter-spacing:.1em; color:#9a8f78; margin-bottom:10px;">{{ resultsCount }} RESULTS</div>
+              <sc-for list="{{ results }}" as="a" hint-placeholder-count="4">
+                <div onClick="{{ a.onPick }}" style="position:relative; background:#fbf6e9; border:1px solid #ddcca3; border-left:5px solid var(--accent,#b5402a); padding:13px 15px; margin-bottom:11px; cursor:pointer; box-shadow:2px 2px 0 rgba(0,0,0,.05);" style-hover="background:#fff9ec; transform:translateX(2px);">
+                  <div style="font-family:'Archivo',sans-serif; font-weight:800; font-size:17px; color:#1c1813;">{{ a.name }}</div>
+                  <div style="font-family:'Courier Prime',monospace; font-size:11px; color:#8a8073; margin-top:3px;">{{ a.dis }}</div>
+                  <div style="position:absolute; right:13px; top:50%; transform:translateY(-50%); font-family:'Caveat',cursive; font-weight:700; font-size:22px; color:var(--accent,#b5402a);">→</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ============ SETLIST PREVIEW & EDIT ============ -->
+      <sc-if value="{{ isSetlist }}" hint-placeholder-val="{{ true }}">
+        <div style="">
+          <div style="background:rgba(214,196,140,.6); padding:7px 16px; transform:rotate(-1.1deg); width:fit-content; margin-bottom:8px; box-shadow:0 1px 0 rgba(0,0,0,.06);"><span style="font-family:'Permanent Marker',cursive; font-size:28px; color:#1c1813;">{{ artistName }}</span></div>
+          <p style="font-family:'Caveat',cursive; font-weight:600; font-size:20px; color:#7a4a3a; margin:2px 0 16px;">songs they've been playing live ♪</p>
+
+          <div style="font-family:'Courier Prime',monospace; font-size:11px; letter-spacing:.08em; color:#9a8f78; margin-bottom:9px;">PICK A SHOW</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+            <sc-for list="{{ setlistTabs }}" as="s" hint-placeholder-count="3">
+              <div onClick="{{ s.onSelect }}" style="cursor:pointer; padding:8px 12px; border:1px solid #d3c29a; background:{{ s.bg }}; color:{{ s.fg }}; box-shadow:{{ s.shadow }};">
+                <div style="font-family:'Archivo',sans-serif; font-weight:700; font-size:12px; line-height:1.2;">{{ s.event }}</div>
+                <div style="font-family:'Courier Prime',monospace; font-size:10px; opacity:.8; margin-top:2px;">{{ s.date }} · {{ s.loc }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-family:'Courier Prime',monospace; font-size:10px; color:#9a8f78; margin-bottom:14px;">via setlist.fm · {{ totalSets }} recent shows</div>
+
+          <sc-if value="{{ showWarn }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; gap:9px; align-items:flex-start; background:#f3e2c2; border:1px dashed #c79a4a; padding:9px 12px; margin-bottom:14px;"><span style="font-size:15px;">⚠</span><span style="font-family:'Caveat',cursive; font-weight:600; font-size:17px; color:#8a5a1a; line-height:1.2;">Only {{ warnCount }} songs logged for this show — the setlist may be incomplete. Add any you remember.</span></div>
+          </sc-if>
+
+          <!-- lined tracklist -->
+          <div style="background:repeating-linear-gradient(#fbf6e9 0 33px,#e7d9b4 33px 34px); border:1px solid #d8c79f; box-shadow:inset 0 1px 3px rgba(0,0,0,.05); padding:4px 16px 6px;">
+            <sc-for list="{{ visibleTracks }}" as="t" hint-placeholder-count="8">
+              <div style="display:flex; align-items:center; gap:11px; height:34px;">
+                <span style="font-family:'Permanent Marker',cursive; font-size:13px; color:var(--accent,#b5402a); width:24px; flex-shrink:0;">{{ t.numLabel }}</span>
+                <span style="font-family:'Caveat',cursive; font-weight:700; font-size:22px; flex:1; line-height:34px; color:{{ t.titleColor }}; text-decoration:{{ t.strike }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ t.title }}</span>
+                <span style="font-family:'Courier Prime',monospace; font-size:11px; color:#a89c80; flex-shrink:0;">{{ t.dur }}</span>
+                <span onClick="{{ t.onToggle }}" style="cursor:pointer; width:22px; text-align:center; font-family:'Caveat',cursive; font-weight:700; font-size:19px; color:{{ t.iconColor }}; flex-shrink:0;">{{ t.icon }}</span>
+              </div>
+            </sc-for>
+            <div style="display:flex; align-items:center; gap:9px; height:34px;">
+              <input value="{{ manual }}" onInput="{{ onManual }}" onKeyDown="{{ onManualKey }}" placeholder="+ add a song you remember…" style="flex:1; border:none; background:transparent; outline:none; font-family:'Caveat',cursive; font-weight:600; font-size:20px; color:#9a7a52;">
+              <span onClick="{{ addManual }}" style="cursor:pointer; font-family:'Archivo Black',sans-serif; font-size:13px; color:var(--accent,#b5402a);">ADD</span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px; font-family:'Courier Prime',monospace; font-size:11px; color:#6f665b;">
+            <span>{{ keptCount }} SONGS · {{ totalTime }}</span>
+            <span style="color:#9a8f78;">SIDE A</span>
+          </div>
+
+          <div onClick="{{ makeTape }}" style="margin-top:16px; width:100%; text-align:center; background:#1c1813; color:#f4ecd8; font-family:'Archivo Black',sans-serif; font-size:19px; padding:17px; transform:rotate(-.7deg); box-shadow:5px 5px 0 var(--accent,#b5402a); cursor:pointer;" style-active="transform:rotate(-.7deg) translate(2px,2px); box-shadow:3px 3px 0 var(--accent,#b5402a);">MAKE THE TAPE →</div>
+          <div style="text-align:center; font-family:'Courier Prime',monospace; font-size:9px; color:#9a8f78; margin-top:14px; letter-spacing:.06em;">SETLIST DATA PROVIDED BY SETLIST.FM</div>
+        </div>
+      </sc-if>
+
+      <!-- ============ PLAYLIST RESULT ============ -->
+      <sc-if value="{{ isResult }}" hint-placeholder-val="{{ true }}">
+        <div style=" text-align:center;">
+          <div style="font-family:'Permanent Marker',cursive; font-size:15px; color:var(--accent,#b5402a); letter-spacing:.04em; transform:rotate(-1.4deg);">★ your tape is ready ★</div>
+
+          <div style="width:300px; margin:18px auto 0; background:#1c1813; border-radius:11px; padding:16px; box-shadow:0 18px 38px -12px rgba(0,0,0,.55); transform:rotate(1.3deg);">
+            <div style="background:#efe7d5; border-radius:3px; padding:14px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <span style="font-family:'Permanent Marker',cursive; font-size:21px; color:#1c1813; line-height:1; text-align:left;">{{ artistName }}<br><span style="font-size:12px; color:#7a4a3a;">live · setlist mix</span></span>
+                <span style="font-family:'Permanent Marker',cursive; font-size:13px; color:var(--accent,#b5402a);">SIDE A</span>
+              </div>
+              <div style="height:1px; background:#cabd9e; margin:11px 0;"></div>
+              <div style="display:flex; justify-content:center; gap:56px; padding:4px 0 2px;">
+                <div style="width:42px; height:42px; border-radius:50%; background:radial-gradient(circle,#efe7d5 0 7px,#bcae8e 7px 16px,#efe7d5 16px 18px,transparent 18px); display:flex; align-items:center; justify-content:center; animation:spin 6s linear infinite;"><div style="width:14px; height:14px; border-radius:50%; background:conic-gradient(#1c1813 0 30deg,#efe7d5 30deg 60deg,#1c1813 60deg 90deg,#efe7d5 90deg 120deg,#1c1813 120deg 150deg,#efe7d5 150deg 180deg,#1c1813 180deg 210deg,#efe7d5 210deg 240deg,#1c1813 240deg 270deg,#efe7d5 270deg 300deg,#1c1813 300deg 330deg,#efe7d5 330deg 360deg);"></div></div>
+                <div style="width:42px; height:42px; border-radius:50%; background:radial-gradient(circle,#efe7d5 0 7px,#bcae8e 7px 13px,#efe7d5 13px 15px,transparent 15px); display:flex; align-items:center; justify-content:center; animation:spin 4s linear infinite;"><div style="width:14px; height:14px; border-radius:50%; background:conic-gradient(#1c1813 0 30deg,#efe7d5 30deg 60deg,#1c1813 60deg 90deg,#efe7d5 90deg 120deg,#1c1813 120deg 150deg,#efe7d5 150deg 180deg,#1c1813 180deg 210deg,#efe7d5 210deg 240deg,#1c1813 240deg 270deg,#efe7d5 270deg 300deg,#1c1813 300deg 330deg,#efe7d5 330deg 360deg);"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <p style="font-family:'Caveat',cursive; font-weight:700; font-size:24px; color:#1c1813; margin:20px 0 0;">{{ matchedCount }} songs added to Spotify.</p>
+
+          <a href="{{ spotifyUrl }}" target="_blank" rel="noopener" style="margin:16px 0 0; text-decoration:none; display:inline-flex; align-items:center; gap:11px; background:#1DB954; color:#06371a; font-family:'Archivo Black',sans-serif; font-size:16px; padding:15px 24px; box-shadow:5px 5px 0 #06371a; transform:rotate(-1deg);" style-active="transform:rotate(-1deg) translate(2px,2px); box-shadow:3px 3px 0 #06371a;">▸ Open in Spotify</a>
+
+          <sc-if value="{{ hasUnmatched }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:24px 0 0; text-align:left; background:#f3e2c2; border:1px dashed #c79a4a; padding:12px 14px;">
+              <div style="font-family:'Courier Prime',monospace; font-size:11px; letter-spacing:.06em; color:#8a5a1a; margin-bottom:6px;">COULDN'T FIND THESE ON SPOTIFY —</div>
+              <sc-for list="{{ unmatched }}" as="u" hint-placeholder-count="2">
+                <div style="font-family:'Caveat',cursive; font-weight:600; font-size:19px; color:#8a5a1a; line-height:1.3;">· {{ u }}</div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <p style="font-family:'Caveat',cursive; font-weight:700; font-size:21px; color:#7a4a3a; margin:24px 0 0; transform:rotate(-.5deg);">Now go. Pass it on. ♪</p>
+          <div onClick="{{ makeAnother }}" style="margin:14px 0 0; font-family:'Archivo',sans-serif; font-weight:800; font-size:14px; color:#1c1813; cursor:pointer; border-bottom:2px solid var(--accent,#b5402a); display:inline-block;">make another tape</div>
+        </div>
+      </sc-if>
+
+      <!-- ============ FESTIVAL MODE ============ -->
+      <sc-if value="{{ isFestival }}" hint-placeholder-val="{{ true }}">
+        <div style="">
+          <div style="background:#1c1813; padding:8px 16px; transform:rotate(-1deg); width:fit-content; box-shadow:3px 3px 0 var(--accent,#b5402a);"><span style="font-family:'Permanent Marker',cursive; font-size:24px; color:#f4ecd8;">Festival mode</span></div>
+          <p style="font-family:'Caveat',cursive; font-weight:600; font-size:20px; color:#7a4a3a; margin:14px 0 16px;">One big tape for the whole lineup.</p>
+
+          <div style="display:flex; gap:8px;">
+            <input value="{{ festQuery }}" onInput="{{ onFestQuery }}" onKeyDown="{{ onFestKey }}" placeholder="festival or venue…" style="flex:1; font-family:'Courier Prime',monospace; font-size:15px; padding:13px 14px; background:#fbf6e9; border:1.5px solid #cdbb8f; border-radius:2px; color:#231f1a; outline:none;" style-focus="border-color:var(--accent,#b5402a);">
+            <div onClick="{{ doFestSearch }}" style="display:flex; align-items:center; background:#1c1813; color:#f4ecd8; font-family:'Archivo Black',sans-serif; font-size:14px; padding:0 18px; cursor:pointer; box-shadow:3px 3px 0 var(--accent,#b5402a);" style-active="transform:translate(2px,2px); box-shadow:1px 1px 0 var(--accent,#b5402a);">GO</div>
+          </div>
+
+          <sc-if value="{{ festSearched }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-top:22px;">
+              <div style="font-family:'Archivo',sans-serif; font-weight:800; font-size:19px; color:#1c1813;">{{ festName }}</div>
+              <div style="font-family:'Courier Prime',monospace; font-size:11px; color:#8a8073; margin:3px 0 16px;">{{ festDate }} · {{ festLoc }} · {{ festIncludedCount }} of {{ festTotal }} artists in</div>
+
+              <sc-for list="{{ festArtists }}" as="f" hint-placeholder-count="8">
+                <div onClick="{{ f.onToggle }}" style="display:flex; align-items:center; gap:12px; padding:11px 13px; margin-bottom:8px; cursor:pointer; background:{{ f.bg }}; border:1px solid #ddcca3; opacity:{{ f.opacity }};">
+                  <span style="width:22px; height:22px; flex-shrink:0; border:2px solid #1c1813; background:{{ f.boxBg }}; display:flex; align-items:center; justify-content:center; font-family:'Caveat',cursive; font-weight:700; font-size:18px; color:#f4ecd8;">{{ f.check }}</span>
+                  <span style="flex:1; font-family:'Archivo',sans-serif; font-weight:700; font-size:15px; color:#1c1813;">{{ f.name }}</span>
+                  <span style="font-family:'Courier Prime',monospace; font-size:10px; color:{{ f.metaColor }};">{{ f.meta }}</span>
+                </div>
+              </sc-for>
+
+              <div style="display:flex; align-items:center; gap:9px; margin-top:6px;">
+                <input value="{{ festAdd }}" onInput="{{ onFestAdd }}" onKeyDown="{{ onFestAddKey }}" placeholder="+ add an artist they missed…" style="flex:1; font-family:'Caveat',cursive; font-weight:600; font-size:19px; padding:8px 12px; background:#fbf6e9; border:1px dashed #cdbb8f; color:#9a7a52; outline:none;">
+                <span onClick="{{ addFestArtist }}" style="cursor:pointer; font-family:'Archivo Black',sans-serif; font-size:13px; color:var(--accent,#b5402a);">ADD</span>
+              </div>
+
+              <div style="font-family:'Courier Prime',monospace; font-size:11px; letter-spacing:.08em; color:#9a8f78; margin:22px 0 9px;">HOW DO YOU WANT IT?</div>
+              <div style="display:flex; gap:10px;">
+                <div onClick="{{ setMerged }}" style="flex:1; cursor:pointer; padding:13px; border:1.5px solid #1c1813; background:{{ mergedBg }}; box-shadow:{{ mergedShadow }};">
+                  <div style="font-family:'Archivo Black',sans-serif; font-size:14px; color:{{ mergedFg }};">ONE BIG TAPE</div>
+                  <div style="font-family:'Courier Prime',monospace; font-size:10px; color:{{ mergedSub }}; margin-top:3px;">everyone, merged</div>
+                </div>
+                <div onClick="{{ setPerArtist }}" style="flex:1; cursor:pointer; padding:13px; border:1.5px solid #1c1813; background:{{ perBg }}; box-shadow:{{ perShadow }};">
+                  <div style="font-family:'Archivo Black',sans-serif; font-size:14px; color:{{ perFg }};">A TAPE EACH</div>
+                  <div style="font-family:'Courier Prime',monospace; font-size:10px; color:{{ perSub }}; margin-top:3px;">one per artist</div>
+                </div>
+              </div>
+
+              <div onClick="{{ createFest }}" style="margin-top:18px; width:100%; text-align:center; background:#1c1813; color:#f4ecd8; font-family:'Archivo Black',sans-serif; font-size:18px; padding:16px; transform:rotate(-.6deg); box-shadow:5px 5px 0 var(--accent,#b5402a); cursor:pointer;" style-active="transform:rotate(-.6deg) translate(2px,2px); box-shadow:3px 3px 0 var(--accent,#b5402a);">{{ festCtaLabel }}</div>
+              <div style="text-align:center; font-family:'Courier Prime',monospace; font-size:9px; color:#9a8f78; margin-top:13px; letter-spacing:.06em;">LINEUPS VIA SETLIST.FM · MAY BE PARTIAL</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ============ FESTIVAL RESULT ============ -->
+      <sc-if value="{{ isFestResult }}" hint-placeholder-val="{{ true }}">
+        <div style="">
+          <div style="text-align:center; font-family:'Permanent Marker',cursive; font-size:15px; color:var(--accent,#b5402a); transform:rotate(-1.2deg);">★ {{ festResultHeadline }} ★</div>
+
+          <!-- merged -->
+          <sc-if value="{{ festIsMerged }}" hint-placeholder-val="{{ true }}">
+            <div style="width:312px; margin:18px auto 0; background:#1c1813; border-radius:11px; padding:16px; box-shadow:0 18px 38px -12px rgba(0,0,0,.55); transform:rotate(-1.4deg);">
+              <div style="background:#efe7d5; border-radius:3px; padding:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;"><span style="font-family:'Permanent Marker',cursive; font-size:19px; color:#1c1813; text-align:left; line-height:1.05;">{{ festName }}</span><span style="font-family:'Permanent Marker',cursive; font-size:12px; color:var(--accent,#b5402a);">MIX</span></div>
+                <div style="font-family:'Courier Prime',monospace; font-size:10px; color:#7a6f5a; margin-top:6px;">{{ festMergedTracks }} songs · {{ festMergedArtists }} artists</div>
+              </div>
+            </div>
+            <div style="text-align:center; margin-top:18px;">
+              <a href="{{ spotifyUrl }}" target="_blank" rel="noopener" style="text-decoration:none; display:inline-flex; align-items:center; gap:10px; background:#1DB954; color:#06371a; font-family:'Archivo Black',sans-serif; font-size:16px; padding:14px 22px; box-shadow:5px 5px 0 #06371a; transform:rotate(-1deg);" style-active="transform:rotate(-1deg) translate(2px,2px); box-shadow:3px 3px 0 #06371a;">▸ Open in Spotify</a>
+            </div>
+          </sc-if>
+
+          <!-- per artist -->
+          <sc-if value="{{ festIsPer }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:18px;">
+              <sc-for list="{{ festPerList }}" as="p" hint-placeholder-count="5">
+                <a href="{{ p.url }}" target="_blank" rel="noopener" style="text-decoration:none; display:flex; align-items:center; gap:13px; background:#fbf6e9; border:1px solid #ddcca3; border-left:5px solid #1DB954; padding:12px 14px; margin-bottom:9px;" style-hover="background:#fff9ec;">
+                  <span style="font-family:'Permanent Marker',cursive; font-size:14px; color:var(--accent,#b5402a); transform:rotate(-4deg);">▸</span>
+                  <span style="flex:1; font-family:'Archivo',sans-serif; font-weight:800; font-size:15px; color:#1c1813;">{{ p.name }}</span>
+                  <span style="font-family:'Courier Prime',monospace; font-size:10px; color:#8a8073;">{{ p.count }} songs</span>
+                </a>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ festHasSkipped }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:22px 0 0; background:#f3e2c2; border:1px dashed #c79a4a; padding:12px 14px;">
+              <div style="font-family:'Courier Prime',monospace; font-size:11px; letter-spacing:.05em; color:#8a5a1a; margin-bottom:6px;">SKIPPED — NO SETLIST DATA YET —</div>
+              <sc-for list="{{ festSkipped }}" as="s" hint-placeholder-count="1">
+                <div style="font-family:'Caveat',cursive; font-weight:600; font-size:19px; color:#8a5a1a;">· {{ s }}</div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <div style="text-align:center; margin-top:26px;">
+            <span onClick="{{ makeAnother }}" style="font-family:'Archivo',sans-serif; font-weight:800; font-size:14px; color:#1c1813; cursor:pointer; border-bottom:2px solid var(--accent,#b5402a);">start over</span>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:468,&quot;height&quot;:900},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#b5402a&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;grain&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;festivalDefault&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;merged&quot;,&quot;per_artist&quot;],&quot;default&quot;:&quot;merged&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  setlistsFor(name) {
+    return [
+      { date: "23 JUN 2017", event: "Glastonbury Festival", loc: "Pilton UK", warn: false, songs: [
+        ["Daydreaming","6:24"],["Desert Island Disk","4:12"],["Ful Stop","6:08"],["15 Step","4:00"],
+        ["Myxomatosis","4:30"],["Lucky","4:19"],["The Gloaming","3:12"],["Pyramid Song","4:49"],
+        ["Everything in Its Right Place","4:11"],["Idioteque","5:08"],["No Surprises","3:48"],
+        ["Karma Police","4:21"],["Creep","3:58"],["Paranoid Android","6:23"]
+      ]},
+      { date: "14 APR 2017", event: "Coachella", loc: "Indio US", warn: false, songs: [
+        ["Daydreaming","6:24"],["Desert Island Disk","4:12"],["Ful Stop","6:08"],["15 Step","4:00"],
+        ["Lucky","4:19"],["Airbag","4:44"],["Videotape","4:40"],["Everything in Its Right Place","4:11"],
+        ["Idioteque","5:08"],["No Surprises","3:48"],["Karma Police","4:21"],["Fake Plastic Trees","4:50"]
+      ]},
+      { date: "08 JUL 2016", event: "Optimus Alive", loc: "Lisbon PT", warn: true, songs: [
+        ["Burn the Witch","3:40"],["Morning Mr Magpie","4:41"],["Lotus Flower","5:01"],
+        ["The National Anthem","5:50"],["Bodysnatchers","4:02"]
+      ]}
+    ];
+  }
+  notFound = ["The Gloaming","Myxomatosis","Morning Mr Magpie","Videotape"];
+
+  defaultFest() {
+    return {
+      name: "Primavera Sound 2024", date: "30 MAY 2024", loc: "Barcelona ES",
+      artists: [
+        { name: "Lana Del Rey", include: true, count: 6 },
+        { name: "The National", include: true, count: 5 },
+        { name: "Pulp", include: true, count: 5 },
+        { name: "PJ Harvey", include: true, count: 4 },
+        { name: "Mitski", include: true, count: 5 },
+        { name: "FKA twigs", include: true, count: 4 },
+        { name: "Bikini Kill", include: true, count: 0, noData: true },
+        { name: "Justice", include: true, count: 5 }
+      ]
+    };
+  }
+
+  state = {
+    screen: "landing",
+    query: "", searched: false,
+    artistName: "", sets: [], selIdx: 0, tracks: [], manual: "",
+    result: null,
+    festQuery: "", festSearched: false, fest: null, festAdd: "",
+    festMode: this.props.festivalDefault || "merged", festResult: null
+  };
+
+  go(screen) { this.setState({ screen }); window.scrollTo(0, 0); }
+
+  loadSet(sets, i) {
+    return sets[i].songs.map((s, k) => ({ id: i + "-" + k + "-" + s[0], title: s[0], dur: s[1], removed: false }));
+  }
+  pickArtist(name) {
+    const sets = this.setlistsFor(name);
+    this.setState({ artistName: name, sets, selIdx: 0, tracks: this.loadSet(sets, 0), screen: "setlist" });
+    window.scrollTo(0, 0);
+  }
+  selectSet(i) { this.setState({ selIdx: i, tracks: this.loadSet(this.state.sets, i) }); }
+  toggleTrack(id) { this.setState(s => ({ tracks: s.tracks.map(t => t.id === id ? { ...t, removed: !t.removed } : t) })); }
+  addManualTrack() {
+    const t = this.state.manual.trim(); if (!t) return;
+    this.setState(s => ({ tracks: [...s.tracks, { id: "m-" + Date.now(), title: t, dur: "—", removed: false, manual: true }], manual: "" }));
+  }
+  makeTape() {
+    const kept = this.state.tracks.filter(t => !t.removed);
+    const unmatched = kept.filter(t => this.notFound.includes(t.title)).map(t => t.title);
+    const matched = kept.length - unmatched.length;
+    this.setState({ result: { matched, unmatched }, screen: "result" });
+    window.scrollTo(0, 0);
+  }
+
+  doFestSearch() { this.setState({ festSearched: true, fest: this.state.fest || this.defaultFest() }); }
+  toggleFest(i) { this.setState(s => ({ fest: { ...s.fest, artists: s.fest.artists.map((a, k) => k === i ? { ...a, include: !a.include } : a) } })); }
+  addFestArtist() {
+    const n = this.state.festAdd.trim(); if (!n) return;
+    this.setState(s => ({ fest: { ...s.fest, artists: [...s.fest.artists, { name: n, include: true, count: 5, manual: true }] }, festAdd: "" }));
+  }
+  createFest() {
+    const inc = this.state.fest.artists.filter(a => a.include);
+    const withData = inc.filter(a => !a.noData);
+    const skipped = inc.filter(a => a.noData).map(a => a.name);
+    this.setState({ festResult: { withData, skipped, mode: this.state.festMode }, screen: "festResult" });
+    window.scrollTo(0, 0);
+  }
+
+  durToSec(d) { if (d === "—") return 0; const p = d.split(":"); return (+p[0]) * 60 + (+p[1]); }
+  fmt(sec) { const m = Math.floor(sec / 60), s = sec % 60; return m + ":" + String(s).padStart(2, "0"); }
+
+  renderVals() {
+    const st = this.state;
+    const accent = this.props.accent || "#b5402a";
+    const grainOpacity = this.props.grain === false ? "0" : ".5";
+    const tabActive = "#1c1813", tabText = "#1c1813";
+
+    // ---- search results
+    const results = [
+      { name: "Radiohead", dis: "English rock band · Oxford, 1985" },
+      { name: "Radio Birdman", dis: "Australian rock band · Sydney" },
+      { name: "Radiator Hospital", dis: "American indie / lo-fi" },
+      { name: "The Radio Dept.", dis: "Swedish dream pop" }
+    ].map(a => ({ ...a, onPick: () => this.pickArtist(a.name) }));
+
+    // ---- setlist tabs
+    const setlistTabs = st.sets.map((s, i) => {
+      const on = i === st.selIdx;
+      return { event: s.event, date: s.date, loc: s.loc, onSelect: () => this.selectSet(i),
+        bg: on ? "#1c1813" : "#fbf6e9", fg: on ? "#f4ecd8" : "#1c1813",
+        shadow: on ? "3px 3px 0 " + accent : "none" };
+    });
+    const curSet = st.sets[st.selIdx] || { warn: false, songs: [] };
+
+    // ---- tracks
+    let n = 0;
+    const visibleTracks = st.tracks.map(t => {
+      if (!t.removed) n++;
+      return { title: t.title, dur: t.dur,
+        numLabel: t.removed ? "—" : (n < 10 ? "0" + n : "" + n) + ".",
+        titleColor: t.removed ? "#b6a98a" : "#1c1813",
+        strike: t.removed ? "line-through" : "none",
+        icon: t.removed ? "↩" : "✗", iconColor: t.removed ? accent : "#a89c80",
+        onToggle: () => this.toggleTrack(t.id) };
+    });
+    const kept = st.tracks.filter(t => !t.removed);
+    const totalSec = kept.reduce((a, t) => a + this.durToSec(t.dur), 0);
+
+    // ---- festival
+    const fest = st.fest || { name: "", date: "", loc: "", artists: [] };
+    const festArtists = fest.artists.map((a, i) => ({
+      name: a.name, onToggle: () => this.toggleFest(i),
+      bg: a.include ? "#fbf6e9" : "#efe7d3", opacity: a.include ? "1" : ".5",
+      boxBg: a.include ? "#1c1813" : "transparent", check: a.include ? "✓" : "",
+      meta: a.noData ? "no setlist yet" : (a.manual ? "added" : a.count + " songs"),
+      metaColor: a.noData ? "#b5402a" : "#8a8073"
+    }));
+    const festIncludedCount = fest.artists.filter(a => a.include).length;
+    const merged = st.festMode === "merged";
+    const mBtn = (on) => ({ bg: on ? "#1c1813" : "#fbf6e9", fg: on ? "#f4ecd8" : "#1c1813",
+      sub: on ? "#cabd9e" : "#8a8073", shadow: on ? "4px 4px 0 " + accent : "none" });
+    const m = mBtn(merged), p = mBtn(!merged);
+
+    // ---- festival result
+    const fr = st.festResult || { withData: [], skipped: [], mode: "merged" };
+    const festMergedTracks = fr.withData.reduce((a, x) => a + (x.count || 0), 0);
+    const festPerList = fr.withData.map(a => ({ name: a.name, count: a.count, url: "https://open.spotify.com/playlist/demo" }));
+
+    return {
+      accent, grainOpacity,
+      isLanding: st.screen === "landing", isSearch: st.screen === "search",
+      isSetlist: st.screen === "setlist", isResult: st.screen === "result",
+      isFestival: st.screen === "festival", isFestResult: st.screen === "festResult",
+
+      backVis: st.screen === "landing" ? "hidden" : "visible",
+      stepTag: { landing: "", search: "01 / SEARCH", setlist: "02 / EDIT", result: "03 / DONE", festival: "FESTIVAL", festResult: "DONE" }[st.screen] || "",
+      onBack: () => {
+        const b = { search: "landing", setlist: "search", result: "landing", festival: "landing", festResult: "festival" };
+        this.go(b[st.screen] || "landing");
+      },
+      goLanding: () => this.go("landing"),
+      goSearch: () => this.go("search"),
+      goFestival: () => { if (!st.fest) this.setState({ fest: this.defaultFest() }); this.go("festival"); },
+
+      // search
+      query: st.query, onQuery: e => this.setState({ query: e.target.value }),
+      onQueryKey: e => { if (e.key === "Enter") this.setState({ searched: true }); },
+      doSearch: () => this.setState({ searched: true }),
+      searched: st.searched, results, resultsCount: results.length,
+
+      // setlist
+      artistName: st.artistName, setlistTabs, totalSets: st.sets.length,
+      showWarn: curSet.warn, warnCount: curSet.songs.length,
+      visibleTracks, keptCount: kept.length, totalTime: this.fmt(totalSec),
+      manual: st.manual, onManual: e => this.setState({ manual: e.target.value }),
+      onManualKey: e => { if (e.key === "Enter") this.addManualTrack(); },
+      addManual: () => this.addManualTrack(),
+      makeTape: () => this.makeTape(),
+
+      // result
+      matchedCount: st.result ? st.result.matched : 0,
+      hasUnmatched: !!(st.result && st.result.unmatched.length),
+      unmatched: st.result ? st.result.unmatched : [],
+      spotifyUrl: "https://open.spotify.com/playlist/demo",
+      makeAnother: () => { this.setState({ query: "", searched: false, festSearched: false, fest: null, festResult: null }); this.go("landing"); },
+
+      // festival
+      festQuery: st.festQuery, onFestQuery: e => this.setState({ festQuery: e.target.value }),
+      onFestKey: e => { if (e.key === "Enter") this.doFestSearch(); },
+      doFestSearch: () => this.doFestSearch(), festSearched: st.festSearched,
+      festName: fest.name, festDate: fest.date, festLoc: fest.loc,
+      festArtists, festIncludedCount, festTotal: fest.artists.length,
+      festAdd: st.festAdd, onFestAdd: e => this.setState({ festAdd: e.target.value }),
+      onFestAddKey: e => { if (e.key === "Enter") this.addFestArtist(); },
+      addFestArtist: () => this.addFestArtist(),
+      setMerged: () => this.setState({ festMode: "merged" }), setPerArtist: () => this.setState({ festMode: "per_artist" }),
+      festMode: st.festMode,
+      mergedBg: m.bg, mergedFg: m.fg, mergedSub: m.sub, mergedShadow: m.shadow,
+      perBg: p.bg, perFg: p.fg, perSub: p.sub, perShadow: p.shadow,
+      createFest: () => this.createFest(),
+      festCtaLabel: merged ? "MAKE ONE BIG TAPE →" : "MAKE " + festIncludedCount + " TAPES →",
+
+      // festival result
+      festResultHeadline: fr.mode === "merged" ? "your festival tape is ready" : "your tapes are ready",
+      festIsMerged: fr.mode === "merged", festIsPer: fr.mode === "per_artist",
+      festMergedTracks, festMergedArtists: fr.withData.length,
+      festPerList, festHasSkipped: fr.skipped.length > 0, festSkipped: fr.skipped
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -142,91 +142,97 @@ function proceedToMode() {
 </script>
 
 <template>
-  <section class="festival-search">
-    <h1>Festival playlist</h1>
+  <section>
+    <div class="gt-tape-title gt-tape-title--ink">Festival mode</div>
+    <p class="gt-sub gt-screen-sub">One big tape for the whole lineup.</p>
 
-    <form @submit.prevent="onSearch">
-      <input v-model="query" placeholder="Festival name (e.g. 'Glastonbury 2024')" />
-      <button type="submit" :disabled="loading">Search</button>
+    <form class="gt-row" @submit.prevent="onSearch">
+      <input v-model="query" class="gt-input" placeholder="festival or venue…" />
+      <button class="gt-btn gt-btn--sm" type="submit" :disabled="loading">GO</button>
     </form>
 
-    <p v-if="error" class="error">{{ error }}</p>
+    <p v-if="error" class="gt-panel gt-screen-message" role="alert">{{ error }}</p>
+    <p v-if="loading" class="gt-loading">Digging through recent shows…</p>
 
-    <ul v-if="events.length && selectedEventIdx === null" class="event-list">
-      <li v-for="(e, i) in events" :key="i">
-        <button type="button" @click="pickEvent(i)">
-          <strong>{{ e.name }}</strong>
-          <span> — {{ e.date }} ({{ e.location }}, {{ e.artists.length }} artists)</span>
-        </button>
-      </li>
-    </ul>
+    <div v-if="events.length && selectedEventIdx === null" class="gt-search-results">
+      <div class="gt-eyebrow">{{ events.length }} EVENTS</div>
+      <button
+        v-for="(e, i) in events"
+        :key="i"
+        type="button"
+        class="gt-result-card"
+        @click="pickEvent(i)"
+      >
+        <span>
+          <span class="gt-result-card__name">{{ e.name }}</span>
+          <span class="gt-result-card__meta">
+            {{ e.date }} · {{ e.location }} · {{ e.artists.length }} artists
+          </span>
+        </span>
+        <span class="gt-result-arrow">→</span>
+      </button>
+    </div>
 
     <template v-if="selectedEventIdx !== null">
-      <h2>Lineup</h2>
-      <ul class="lineup">
-        <li v-for="(row, i) in lineup" :key="i">
-          <label>
-            <input type="checkbox" v-model="row.include" />
-            <strong>{{ row.artist_name }}</strong>
-            <span v-if="row.hasSetlist"> ({{ row.tracks.length }} songs)</span>
-            <span v-else-if="row.tracks.length"> ({{ row.tracks.length }} manual songs)</span>
-            <span v-else class="no-setlist"> (no setlist found)</span>
-          </label>
-          <div v-if="row.attribution" class="attribution">{{ row.attribution }}</div>
-          <ol v-if="row.tracks.length" class="track-editor">
-            <li v-for="(track, trackIdx) in row.tracks" :key="trackIdx">
-              <span>{{ track.title }}</span>
-              <button type="button" @click="removeTrack(row, trackIdx)">Remove</button>
-            </li>
-          </ol>
-          <form class="manual-track" @submit.prevent="addTrack(row)">
-            <input v-model="row.draft_title" :placeholder="`Add song for ${row.artist_name}`" />
-            <button type="submit">Add song</button>
-          </form>
-        </li>
-      </ul>
+      <div class="gt-festival-event">
+        <div class="gt-event-name">{{ events[selectedEventIdx].name }}</div>
+        <div class="gt-event-meta">
+          {{ events[selectedEventIdx].date }} · {{ events[selectedEventIdx].location }} ·
+          {{ lineup.filter((r) => r.include).length }} of {{ lineup.length }} artists in
+        </div>
+      </div>
 
-      <form class="manual-artist" @submit.prevent="addManual">
-        <input v-model="manualName" placeholder="Add artist manually" />
-        <button type="submit">Add</button>
+      <div>
+        <div
+          v-for="(row, i) in lineup"
+          :key="i"
+          class="gt-artist-block"
+        >
+          <button
+            type="button"
+            class="gt-artist"
+            :class="{ 'gt-artist--off': !row.include }"
+            @click="row.include = !row.include"
+          >
+            <span class="gt-check" :class="{ 'gt-check--on': row.include }">{{ row.include ? '✓' : '' }}</span>
+            <span class="gt-artist__name">{{ row.artist_name }}</span>
+            <span
+              class="gt-artist__meta"
+              :class="{ 'gt-artist__meta--nodata': !row.hasSetlist && row.tracks.length === 0 }"
+            >
+              <template v-if="row.hasSetlist">{{ row.tracks.length }} songs</template>
+              <template v-else-if="row.tracks.length">added</template>
+              <template v-else>no setlist yet</template>
+            </span>
+          </button>
+
+          <div v-if="row.tracks.length" class="gt-mini-tracks">
+            <div v-for="(track, trackIdx) in row.tracks" :key="trackIdx" class="gt-mini-track">
+              <span>{{ track.title }}</span>
+              <button type="button" @click="removeTrack(row, trackIdx)">✗</button>
+            </div>
+          </div>
+          <form class="gt-row gt-manual-song" @submit.prevent="addTrack(row)">
+            <input v-model="row.draft_title" class="gt-input gt-input--hand" :placeholder="`+ add song for ${row.artist_name}`" />
+            <button class="gt-track-add" type="submit">ADD</button>
+          </form>
+        </div>
+      </div>
+
+      <form class="gt-row gt-manual-artist" @submit.prevent="addManual">
+        <input v-model="manualName" class="gt-input gt-input--hand" placeholder="+ add an artist they missed…" />
+        <button class="gt-track-add" type="submit">ADD</button>
       </form>
 
-      <button type="button" @click="proceedToMode">Continue</button>
+      <button class="gt-btn gt-btn--block gt-create-btn" type="button" @click="proceedToMode">
+        CONTINUE →
+      </button>
+      <p class="gt-attribution gt-center gt-bottom-caption">LINEUPS VIA SETLIST.FM · MAY BE PARTIAL</p>
     </template>
 
     <template v-else-if="searched && !loading && events.length === 0">
-      <p>No events found.</p>
-      <button type="button" @click="startManualFestival">Build manually</button>
+      <p class="gt-empty-note">No events found.</p>
+      <button class="gt-btn gt-btn--block" type="button" @click="startManualFestival">BUILD MANUALLY →</button>
     </template>
   </section>
 </template>
-
-<style scoped>
-.festival-search {
-  max-width: 680px;
-  margin: 2rem auto;
-  font-family: system-ui, sans-serif;
-}
-.attribution {
-  font-size: 0.85em;
-  color: #555;
-  margin-left: 1.5rem;
-}
-.no-setlist {
-  color: #a60;
-}
-.track-editor {
-  margin-left: 1.5rem;
-}
-.track-editor li {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-.manual-track {
-  margin: 0.4rem 0 0.8rem 1.5rem;
-}
-.error {
-  color: #b00;
-}
-</style>
