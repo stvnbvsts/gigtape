@@ -7,6 +7,7 @@ const router = useRouter()
 const authUrl = ref('')
 const error = ref('')
 const oauthBanner = ref('')
+const connecting = ref(false)
 
 onMounted(() => {
   const code = consumeOAuthError()
@@ -21,17 +22,30 @@ onMounted(() => {
     .catch(() => {})
 })
 
+// Mobile Safari aborts in-flight fetches started by overlapping taps, which
+// surfaces as a "Load failed" TypeError — connecting guards against firing a
+// second request while one is already pending. One retry covers a transient
+// network blip on the live (non-prefetched) path.
 async function connectSpotify() {
   oauthBanner.value = ''
   if (authUrl.value) {
     window.location.href = authUrl.value
     return
   }
+  if (connecting.value) return
+  connecting.value = true
   try {
-    const { auth_url } = await getAuthUrl()
+    let auth_url: string
+    try {
+      ;({ auth_url } = await getAuthUrl())
+    } catch {
+      ;({ auth_url } = await getAuthUrl())
+    }
     window.location.href = auth_url
   } catch (e) {
     error.value = (e as Error).message
+  } finally {
+    connecting.value = false
   }
 }
 </script>
@@ -61,7 +75,7 @@ async function connectSpotify() {
       to see. ♪
     </p>
 
-    <button class="gt-btn gt-connect-btn" type="button" @click="connectSpotify">
+    <button class="gt-btn gt-connect-btn" type="button" :disabled="connecting" @click="connectSpotify">
       <span class="gt-spotify-dot"></span>
       Connect Spotify
     </button>
