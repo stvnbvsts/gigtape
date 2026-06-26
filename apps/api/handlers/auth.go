@@ -3,6 +3,7 @@ package handlers
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -54,12 +55,14 @@ func AuthCallback(c *gin.Context) {
 	state := c.Query("state")
 
 	if code == "" || state == "" {
+		log.Printf("auth/callback: missing code or state (code_empty=%v state_empty=%v)", code == "", state == "")
 		respondOAuthError(c, "oauth_error", "OAuth handshake failed. Please try connecting your Spotify account again.")
 		return
 	}
 
 	v, ok := pendingAuth.LoadAndDelete(state)
 	if !ok {
+		log.Printf("auth/callback: unknown or expired state=%s", state)
 		respondOAuthError(c, "oauth_error", "OAuth handshake failed. Please try connecting your Spotify account again.")
 		return
 	}
@@ -73,6 +76,7 @@ func AuthCallback(c *gin.Context) {
 		verifier,
 	)
 	if err != nil {
+		log.Printf("auth/callback: code exchange failed: %v", err)
 		respondOAuthError(c, "oauth_error", "OAuth handshake failed. Please try connecting your Spotify account again.")
 		return
 	}
@@ -80,6 +84,7 @@ func AuthCallback(c *gin.Context) {
 	httpClient := spotify.NewClient(c.Request.Context(), token, os.Getenv("SPOTIFY_CLIENT_ID"))
 	userID, err := spotify.GetCurrentUserID(c.Request.Context(), httpClient)
 	if err != nil {
+		log.Printf("auth/callback: profile fetch failed: %v", err)
 		respondOAuthError(c, "profile_error", "Could not retrieve your Spotify profile. Please try again.")
 		return
 	}
