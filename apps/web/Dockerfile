@@ -12,8 +12,6 @@ RUN npm run build
 
 FROM nginx:1.27-alpine
 
-ENV API_BASE_URL=http://api:8080
-
 COPY apps/web/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 RUN sed -i '/^user /d; s#pid .*nginx.pid;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf \
