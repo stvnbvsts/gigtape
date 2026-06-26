@@ -112,6 +112,16 @@ API service on the internal Compose network. Browser redirects still use
 `localhost`, so the Spotify dashboard redirect URI remains
 `http://127.0.0.1:8080/auth/callback`.
 
+For hosted deployments, set the web service's `API_BASE_URL` to the full API
+origin, including the scheme, for example:
+
+```bash
+API_BASE_URL=https://your-api-service.up.railway.app
+```
+
+This keeps browser calls same-origin through `/api/*` and avoids mobile Safari
+following cross-origin HTTP-to-HTTPS redirects.
+
 Useful Docker commands:
 
 ```bash
