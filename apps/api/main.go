@@ -55,7 +55,7 @@ func main() {
 			token, err := applemusic.DeveloperToken(time.Now(), applemusic.TokenConfig{
 				TeamID:     os.Getenv("APPLE_MUSIC_TEAM_ID"),
 				KeyID:      os.Getenv("APPLE_MUSIC_KEY_ID"),
-				PrivateKey: normalizePrivateKey(os.Getenv("APPLE_MUSIC_PRIVATE_KEY")),
+				PrivateKey: appleMusicPrivateKey(),
 				TTL:        appleMusicTokenTTL(),
 			})
 			if err != nil {
@@ -149,7 +149,23 @@ func firstNonEmpty(vals ...string) string {
 }
 
 func normalizePrivateKey(raw string) string {
-	return strings.ReplaceAll(raw, `\n`, "\n")
+	raw = strings.TrimSpace(raw)
+	raw = strings.Trim(raw, `"'`)
+	raw = strings.ReplaceAll(raw, `\r\n`, "\n")
+	raw = strings.ReplaceAll(raw, `\n`, "\n")
+	raw = strings.ReplaceAll(raw, "\r\n", "\n")
+	return strings.TrimSpace(raw)
+}
+
+func appleMusicPrivateKey() string {
+	if path := os.Getenv("APPLE_MUSIC_PRIVATE_KEY_FILE"); path != "" {
+		b, err := os.ReadFile(path)
+		if err == nil {
+			return normalizePrivateKey(string(b))
+		}
+		log.Printf("apple music config: could not read APPLE_MUSIC_PRIVATE_KEY_FILE: %v", err)
+	}
+	return normalizePrivateKey(os.Getenv("APPLE_MUSIC_PRIVATE_KEY"))
 }
 
 func appleMusicStorefront() string {

@@ -83,6 +83,8 @@ SPOTIFY_REDIRECT_URI=http://127.0.0.1:8080/auth/callback
 APPLE_MUSIC_TEAM_ID=your_apple_developer_team_id
 APPLE_MUSIC_KEY_ID=your_musickit_key_id
 APPLE_MUSIC_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nyour_private_key_here\n-----END PRIVATE KEY-----"
+# or point the API at a mounted .p8 file:
+# APPLE_MUSIC_PRIVATE_KEY_FILE=/run/secrets/apple_music_private_key.p8
 APPLE_MUSIC_STOREFRONT=us
 APPLE_MUSIC_TOKEN_TTL_MINUTES=30
 SESSION_TTL_MINUTES=60
@@ -100,6 +102,8 @@ Apple Music support is web-only. The API signs short-lived MusicKit developer
 tokens from `APPLE_MUSIC_TEAM_ID`, `APPLE_MUSIC_KEY_ID`, and
 `APPLE_MUSIC_PRIVATE_KEY`; the web app obtains the Music User Token with
 MusicKit JS and exchanges it for a short-lived Gigtape session.
+For Docker `.env` files, keep the private key on one line using literal `\n`
+separators, or set `APPLE_MUSIC_PRIVATE_KEY_FILE` to a mounted `.p8` file path.
 
 For native commands, load the environment first:
 

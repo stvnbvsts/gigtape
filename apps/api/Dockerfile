@@ -8,6 +8,7 @@ ENV GOWORK=off
 COPY apps/api/go.mod apps/api/go.sum ./apps/api/
 COPY packages/domain/go.mod ./packages/domain/
 COPY packages/usecases/go.mod packages/usecases/go.sum ./packages/usecases/
+COPY packages/adapters/applemusic/go.mod ./packages/adapters/applemusic/
 COPY packages/adapters/setlistfm/go.mod ./packages/adapters/setlistfm/
 COPY packages/adapters/spotify/go.mod packages/adapters/spotify/go.sum ./packages/adapters/spotify/
 

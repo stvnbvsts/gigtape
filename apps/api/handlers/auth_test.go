@@ -104,3 +104,11 @@ func TestAppleMusicDeveloperTokenReturnsConfig(t *testing.T) {
 	assert.Len(t, strings.Split(body.DeveloperToken, "."), 3)
 	assert.Equal(t, "de", body.Storefront)
 }
+
+func TestNormalizePrivateKeyAcceptsQuotedEscapedPEM(t *testing.T) {
+	raw := `"-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----"`
+
+	got := normalizePrivateKey(raw)
+
+	assert.Equal(t, "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----", got)
+}
