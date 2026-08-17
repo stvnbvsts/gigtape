@@ -10,6 +10,7 @@ import PlaylistResultView from './views/PlaylistResultView.vue'
 import FestivalSearchView from './views/FestivalSearchView.vue'
 import FestivalModeView from './views/FestivalModeView.vue'
 import FestivalResultView from './views/FestivalResultView.vue'
+import TransferView from './views/TransferView.vue'
 import { setOAuthError, setSessionId } from './api/client'
 
 // When /auth/callback redirects back with ?session_id=... or ?oauth_error=...,
@@ -17,8 +18,13 @@ import { setOAuthError, setSessionId } from './api/client'
 const url = new URL(window.location.href)
 const incomingSession = url.searchParams.get('session_id')
 if (incomingSession) {
-  setSessionId(incomingSession)
+  setSessionId(incomingSession, 'spotify')
   url.searchParams.delete('session_id')
+  const pendingPath = localStorage.getItem('gigtape_post_spotify_auth_path')
+  if (pendingPath) {
+    localStorage.removeItem('gigtape_post_spotify_auth_path')
+    url.pathname = pendingPath
+  }
   if (url.pathname === '/') {
     url.pathname = '/search'
   }
@@ -42,6 +48,7 @@ const router = createRouter({
     { path: '/festival', component: FestivalSearchView, meta: { step: 'FEST / FIND', back: '/' } },
     { path: '/festival/mode', component: FestivalModeView, meta: { step: 'FEST / MIX', back: '/festival' } },
     { path: '/festival/result', component: FestivalResultView, meta: { step: 'FEST / DONE', back: '/festival' } },
+    { path: '/transfer', component: TransferView, meta: { step: 'COPY / MOVE', back: '/' } },
   ],
 })
 

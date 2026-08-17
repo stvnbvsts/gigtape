@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -31,7 +32,7 @@ type festivalPlaylistRequest struct {
 
 // DestinationFactory builds a PlaylistDestination scoped to the authenticated
 // user. Injected from main.go so handlers don't import spotify directly.
-type DestinationFactory func(sess middleware.Session) domain.PlaylistDestination
+type DestinationFactory func(sess middleware.Session) (domain.PlaylistDestination, error)
 
 type artistPlaylistRequest struct {
 	ArtistRef    string      `json:"artist_ref"`
@@ -91,10 +92,18 @@ func CreateArtistPlaylist(factory DestinationFactory, reporter usecases.ErrorRep
 		}
 
 		uc := &usecases.CreatePlaylistFromArtist{
-			Destination: factory(sess),
-			Reporter:    reporter,
-			Logger:      logger.With(slog.String("session_id", sess.ID)),
+			Reporter: reporter,
+			Logger:   logger.With(slog.String("session_id", sess.ID)),
 		}
+		dest, err := factory(sess)
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{
+				"error":   "destination_unavailable",
+				"message": destinationErrorMessage(err),
+			})
+			return
+		}
+		uc.Destination = dest
 		result, err := uc.Execute(c.Request.Context(), req.ArtistName, date, tracks)
 		if err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{
@@ -169,10 +178,18 @@ func CreateFestivalPlaylist(factory DestinationFactory, reporter usecases.ErrorR
 		}
 
 		uc := &usecases.CreatePlaylistFromFestival{
-			Destination: factory(sess),
-			Reporter:    reporter,
-			Logger:      logger.With(slog.String("session_id", sess.ID)),
+			Reporter: reporter,
+			Logger:   logger.With(slog.String("session_id", sess.ID)),
 		}
+		dest, err := factory(sess)
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{
+				"error":   "destination_unavailable",
+				"message": destinationErrorMessage(err),
+			})
+			return
+		}
+		uc.Destination = dest
 		results, err := uc.Execute(c.Request.Context(), usecases.FestivalRequest{
 			EventName: req.EventName,
 			EventDate: eventDate,
@@ -209,6 +226,15 @@ func CreateFestivalPlaylist(factory DestinationFactory, reporter usecases.ErrorR
 		middleware.DeleteSession(sess.ID)
 		c.JSON(status, gin.H{"results": out})
 	}
+}
+
+var ErrAppleMusicUnavailable = errors.New("apple music destination unavailable")
+
+func destinationErrorMessage(err error) string {
+	if errors.Is(err, ErrAppleMusicUnavailable) {
+		return "Apple Music is unavailable. Please reconnect Apple Music and try again."
+	}
+	return "Playlist destination is unavailable. Please reconnect your account."
 }
 
 func toResultJSON(r domain.PlaylistResult) playlistResultJSON {

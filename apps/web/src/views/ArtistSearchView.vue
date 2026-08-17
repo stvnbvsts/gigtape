@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   getSessionId,
+  serviceLabel,
   searchArtists,
   setSessionId,
   type Artist,
@@ -19,7 +20,7 @@ async function onSearch() {
   error.value = ''
   if (!query.value.trim()) return
   if (!getSessionId()) {
-    error.value = 'Please connect Spotify first.'
+    error.value = `Please connect ${serviceLabel()} first.`
     return
   }
   loading.value = true

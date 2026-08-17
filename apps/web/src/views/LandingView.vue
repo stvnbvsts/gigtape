@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { consumeOAuthError, getAuthUrl } from '../api/client'
+import { connectAppleMusic, consumeOAuthError, getAuthUrl } from '../api/client'
 
 const router = useRouter()
 const authUrl = ref('')
 const error = ref('')
 const oauthBanner = ref('')
 const connecting = ref(false)
+const connectingApple = ref(false)
 
 onMounted(() => {
   const code = consumeOAuthError()
@@ -48,6 +49,20 @@ async function connectSpotify() {
     connecting.value = false
   }
 }
+
+async function connectApple() {
+  oauthBanner.value = ''
+  if (connectingApple.value) return
+  connectingApple.value = true
+  try {
+    await connectAppleMusic()
+    router.push('/search')
+  } catch (e) {
+    error.value = (e as Error).message
+  } finally {
+    connectingApple.value = false
+  }
+}
 </script>
 
 <template>
@@ -71,17 +86,28 @@ async function connectSpotify() {
 
     <h1 class="gt-h1 gt-landing-title">Make the tape<br />before the show.</h1>
     <p class="gt-sub">
-      Turn any band's live setlist into a Spotify playlist — a mixtape for the gig you're about
+      Turn any band's live setlist into a playlist — a mixtape for the gig you're about
       to see. ♪
     </p>
 
-    <button class="gt-btn gt-connect-btn" type="button" :disabled="connecting" @click="connectSpotify">
-      <span class="gt-spotify-dot"></span>
-      Connect Spotify
-    </button>
+    <div class="gt-provider-actions">
+      <button class="gt-btn gt-connect-btn" type="button" :disabled="connecting" @click="connectSpotify">
+        <span class="gt-spotify-dot"></span>
+        Connect Spotify
+      </button>
+
+      <button class="gt-btn gt-btn--apple gt-connect-btn" type="button" :disabled="connectingApple" @click="connectApple">
+        <span class="gt-apple-dot"></span>
+        Connect Apple Music
+      </button>
+    </div>
 
     <button class="gt-link gt-link--hand gt-plain-link gt-festival-link" type="button" @click="router.push('/festival')">
       Going to a festival? Make the whole lineup →
+    </button>
+
+    <button class="gt-link gt-link--hand gt-plain-link gt-festival-link" type="button" @click="router.push('/transfer')">
+      Moving to Apple Music? Copy a Spotify playlist →
     </button>
 
     <div class="gt-footer-note">

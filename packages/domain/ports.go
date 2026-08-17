@@ -27,3 +27,13 @@ type PlaylistDestination interface {
 	// Returns an error only for unrecoverable failures (auth failure, service unavailable).
 	CreatePlaylist(ctx context.Context, playlist Playlist) (PlaylistResult, error)
 }
+
+// PlaylistSource reads playlists from a music service for copy-only transfer flows.
+type PlaylistSource interface {
+	// ListPlaylists returns playlists selectable by the authenticated user.
+	// Returns an empty slice — not an error — when no playlists are selectable.
+	ListPlaylists(ctx context.Context) ([]PlaylistSummary, error)
+
+	// GetPlaylist returns playlist metadata and tracks in source order.
+	GetPlaylist(ctx context.Context, id string) (Playlist, error)
+}

@@ -1,18 +1,23 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { toSpotifyAppURI, type PlaylistResult } from '../api/client'
+import { getSessionService, serviceLabel, toSpotifyAppURI, type MusicService, type PlaylistResult } from '../api/client'
 
 const result = ref<PlaylistResult | null>(null)
+const service = ref<MusicService>('spotify')
 
 onMounted(() => {
   const raw = sessionStorage.getItem('gigtape_last_result')
   if (raw) {
     result.value = JSON.parse(raw) as PlaylistResult
   }
+  service.value = getSessionService()
 })
 
 const hasUnmatched = computed(() => (result.value?.unmatched_tracks?.length ?? 0) > 0)
-const appURI = computed(() => (result.value ? toSpotifyAppURI(result.value.playlist_url) : null))
+const label = computed(() => serviceLabel(service.value))
+const appURI = computed(() =>
+  service.value === 'spotify' && result.value ? toSpotifyAppURI(result.value.playlist_url) : null,
+)
 const artistName = computed(() => result.value?.matched_tracks?.[0]?.artist_name || 'Gigtape')
 </script>
 
@@ -38,7 +43,7 @@ const artistName = computed(() => result.value?.matched_tracks?.[0]?.artist_name
         </div>
       </div>
 
-      <p class="gt-result-copy">{{ result.matched_tracks.length }} songs added to Spotify.</p>
+      <p class="gt-result-copy">{{ result.matched_tracks.length }} songs added to {{ label }}.</p>
 
       <a
         v-if="appURI"
@@ -49,12 +54,13 @@ const artistName = computed(() => result.value?.matched_tracks?.[0]?.artist_name
       </a>
       <a
         v-else
-        class="gt-btn gt-btn--spotify gt-result-open"
+        class="gt-btn gt-result-open"
+        :class="service === 'apple_music' ? 'gt-btn--apple' : 'gt-btn--spotify'"
         :href="result.playlist_url"
         target="_blank"
         rel="noopener"
       >
-        ▸ Open in Spotify
+        ▸ Open in {{ label }}
       </a>
       <a
         v-if="appURI"
@@ -68,7 +74,7 @@ const artistName = computed(() => result.value?.matched_tracks?.[0]?.artist_name
 
       <!-- Unmatched tracks are always displayed explicitly — never hidden or collapsed. -->
       <div v-if="hasUnmatched" class="gt-panel gt-result-panel">
-        <div class="gt-panel__label">COULDN'T FIND THESE ON SPOTIFY —</div>
+        <div class="gt-panel__label">COULDN'T FIND THESE ON {{ label.toUpperCase() }} —</div>
         <div v-for="(t, i) in result.unmatched_tracks" :key="i" class="gt-panel__item">· {{ t }}</div>
       </div>
 

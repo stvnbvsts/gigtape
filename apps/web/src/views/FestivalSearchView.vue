@@ -5,6 +5,7 @@ import {
   getSessionId,
   getSetlists,
   searchEvents,
+  serviceLabel,
   type Event,
   type Track,
 } from '../api/client'
@@ -32,7 +33,7 @@ const searched = ref(false)
 async function onSearch() {
   error.value = ''
   if (!getSessionId()) {
-    error.value = 'Please connect Spotify first.'
+    error.value = `Please connect ${serviceLabel()} first.`
     return
   }
   if (!query.value.trim()) return

@@ -7,9 +7,27 @@ import (
 
 // Playlist is the domain representation of a music service playlist to be created.
 type Playlist struct {
-	Name      string
-	Tracks    []Track
-	CreatedAt time.Time
+	Name        string
+	Description string
+	Tracks      []Track
+	CreatedAt   time.Time
+}
+
+// MusicService identifies an external music service Gigtape can connect to.
+type MusicService string
+
+const (
+	MusicServiceSpotify    MusicService = "spotify"
+	MusicServiceAppleMusic MusicService = "apple_music"
+)
+
+// PlaylistSummary is the minimal metadata needed to let a user choose a playlist.
+type PlaylistSummary struct {
+	ID          string
+	Name        string
+	Description string
+	TrackCount  int
+	OwnerName   string
 }
 
 // ArtistPlaylistName returns the standard name for a single-artist playlist.

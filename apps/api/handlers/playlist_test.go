@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -24,6 +25,56 @@ type fakeDestination struct {
 	err    error
 }
 
+func TestCreateArtistPlaylistDestinationUnavailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	sess := middleware.NewAppleMusicSession("mut")
+	t.Cleanup(func() { middleware.DeleteSession(sess.ID) })
+
+	r := gin.New()
+	r.Use(middleware.SessionAuth())
+	r.POST("/playlists/artist", CreateArtistPlaylist(func(middleware.Session) (domain.PlaylistDestination, error) {
+		return nil, ErrAppleMusicUnavailable
+	}, nil, testLogger()))
+
+	req := httptest.NewRequest(http.MethodPost, "/playlists/artist", strings.NewReader(`{
+		"artist_name":"Artist",
+		"tracks":[{"title":"Song","artist_name":"Artist"}]
+	}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Session-ID", sess.ID)
+	rec := httptest.NewRecorder()
+
+	r.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusBadGateway, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Apple Music is unavailable")
+}
+
+func TestCreateArtistPlaylistGenericDestinationUnavailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	sess := middleware.NewSession(&oauth2.Token{AccessToken: "token", Expiry: time.Now().Add(time.Hour)}, "user")
+	t.Cleanup(func() { middleware.DeleteSession(sess.ID) })
+
+	r := gin.New()
+	r.Use(middleware.SessionAuth())
+	r.POST("/playlists/artist", CreateArtistPlaylist(func(middleware.Session) (domain.PlaylistDestination, error) {
+		return nil, errors.New("boom")
+	}, nil, testLogger()))
+
+	req := httptest.NewRequest(http.MethodPost, "/playlists/artist", strings.NewReader(`{
+		"artist_name":"Artist",
+		"tracks":[{"title":"Song","artist_name":"Artist"}]
+	}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Session-ID", sess.ID)
+	rec := httptest.NewRecorder()
+
+	r.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusBadGateway, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Playlist destination is unavailable")
+}
+
 func (f fakeDestination) CreatePlaylist(context.Context, domain.Playlist) (domain.PlaylistResult, error) {
 	return f.result, f.err
 }
@@ -39,13 +90,13 @@ func TestCreateArtistPlaylistDeletesSessionOnSuccess(t *testing.T) {
 
 	r := gin.New()
 	r.Use(middleware.SessionAuth())
-	r.POST("/playlists/artist", CreateArtistPlaylist(func(middleware.Session) domain.PlaylistDestination {
+	r.POST("/playlists/artist", CreateArtistPlaylist(func(middleware.Session) (domain.PlaylistDestination, error) {
 		return fakeDestination{result: domain.PlaylistResult{
 			PlaylistURL:     "https://open.spotify.com/playlist/1",
 			MatchedTracks:   []domain.Track{{Title: "Song", ArtistName: "Artist"}},
 			UnmatchedTracks: []string{},
 			SkippedArtists:  []string{},
-		}}
+		}}, nil
 	}, nil, testLogger()))
 
 	req := httptest.NewRequest(http.MethodPost, "/playlists/artist", strings.NewReader(`{
@@ -71,13 +122,13 @@ func TestCreateFestivalPlaylistDeletesSessionOnSuccess(t *testing.T) {
 
 	r := gin.New()
 	r.Use(middleware.SessionAuth())
-	r.POST("/playlists/festival", CreateFestivalPlaylist(func(middleware.Session) domain.PlaylistDestination {
+	r.POST("/playlists/festival", CreateFestivalPlaylist(func(middleware.Session) (domain.PlaylistDestination, error) {
 		return fakeDestination{result: domain.PlaylistResult{
 			PlaylistURL:     "https://open.spotify.com/playlist/1",
 			MatchedTracks:   []domain.Track{{Title: "Song", ArtistName: "Artist"}},
 			UnmatchedTracks: []string{},
 			SkippedArtists:  []string{},
-		}}
+		}}, nil
 	}, nil, testLogger()))
 
 	req := httptest.NewRequest(http.MethodPost, "/playlists/festival", strings.NewReader(`{

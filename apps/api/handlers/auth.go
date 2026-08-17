@@ -7,8 +7,12 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 
+	"gigtape/adapters/applemusic"
 	"gigtape/adapters/spotify"
 	"gigtape/api/middleware"
 
@@ -100,6 +104,44 @@ func AuthCallback(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"session_id": sess.ID})
 }
 
+// AppleMusicDeveloperToken returns a MusicKit developer token for web authorization.
+func AppleMusicDeveloperToken(c *gin.Context) {
+	token, err := applemusic.DeveloperToken(time.Now(), appleMusicTokenConfig())
+	if err != nil {
+		log.Printf("auth/apple-music/developer-token: %v", err)
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":   "apple_music_not_configured",
+			"message": "Apple Music is not configured. Please try Spotify or contact the operator.",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"developer_token": token,
+		"storefront":      appleMusicStorefront(),
+	})
+}
+
+type appleMusicSessionRequest struct {
+	MusicUserToken string `json:"music_user_token"`
+}
+
+// AppleMusicSession creates a short-lived web session from a Music User Token.
+func AppleMusicSession(c *gin.Context) {
+	var req appleMusicSessionRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.MusicUserToken == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"message": "music_user_token is required.",
+		})
+		return
+	}
+	sess := middleware.NewAppleMusicSession(req.MusicUserToken)
+	c.JSON(http.StatusOK, gin.H{
+		"session_id": sess.ID,
+		"service":    string(sess.Service),
+	})
+}
+
 // respondOAuthError emits a 302 to the SPA with ?oauth_error=<code> when
 // WEB_REDIRECT_URL is set, otherwise a 400 JSON error.
 func respondOAuthError(c *gin.Context, code, message string) {
@@ -138,4 +180,32 @@ func randomHex() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+func appleMusicTokenConfig() applemusic.TokenConfig {
+	return applemusic.TokenConfig{
+		TeamID:     os.Getenv("APPLE_MUSIC_TEAM_ID"),
+		KeyID:      os.Getenv("APPLE_MUSIC_KEY_ID"),
+		PrivateKey: normalizePrivateKey(os.Getenv("APPLE_MUSIC_PRIVATE_KEY")),
+		TTL:        appleMusicTokenTTL(),
+	}
+}
+
+func appleMusicStorefront() string {
+	if v := os.Getenv("APPLE_MUSIC_STOREFRONT"); v != "" {
+		return v
+	}
+	return "us"
+}
+
+func appleMusicTokenTTL() time.Duration {
+	minutes, err := strconv.Atoi(os.Getenv("APPLE_MUSIC_TOKEN_TTL_MINUTES"))
+	if err != nil || minutes <= 0 {
+		return 30 * time.Minute
+	}
+	return time.Duration(minutes) * time.Minute
+}
+
+func normalizePrivateKey(raw string) string {
+	return strings.ReplaceAll(raw, `\n`, "\n")
 }

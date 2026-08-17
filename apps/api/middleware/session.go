@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"gigtape/domain"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
 )
@@ -16,11 +18,13 @@ import (
 // Session holds an authenticated user's OAuth token for the duration of a single
 // interactive session. Sessions are in-memory only and discarded on expiry.
 type Session struct {
-	ID        string
-	Token     *oauth2.Token
-	UserID    string // Spotify user ID, needed for playlist creation
-	CreatedAt time.Time
-	ExpiresAt time.Time
+	ID                  string
+	Service             domain.MusicService
+	Token               *oauth2.Token
+	UserID              string // Spotify user ID, needed for playlist creation
+	AppleMusicUserToken string
+	CreatedAt           time.Time
+	ExpiresAt           time.Time
 }
 
 // LookupResult describes the outcome of a session store lookup.
@@ -46,15 +50,35 @@ func sessionTTL() time.Duration {
 	return time.Duration(minutes) * time.Minute
 }
 
-// NewSession creates a session, stores it, and returns it.
+// NewSession creates a Spotify session, stores it, and returns it.
 func NewSession(token *oauth2.Token, userID string) Session {
+	return NewSpotifySession(token, userID)
+}
+
+// NewSpotifySession creates a Spotify session, stores it, and returns it.
+func NewSpotifySession(token *oauth2.Token, userID string) Session {
 	now := time.Now()
 	s := Session{
 		ID:        newUUID(),
+		Service:   domain.MusicServiceSpotify,
 		Token:     token,
 		UserID:    userID,
 		CreatedAt: now,
 		ExpiresAt: now.Add(sessionTTL()),
+	}
+	store.Store(s.ID, s)
+	return s
+}
+
+// NewAppleMusicSession creates an Apple Music web session, stores it, and returns it.
+func NewAppleMusicSession(userToken string) Session {
+	now := time.Now()
+	s := Session{
+		ID:                  newUUID(),
+		Service:             domain.MusicServiceAppleMusic,
+		AppleMusicUserToken: userToken,
+		CreatedAt:           now,
+		ExpiresAt:           now.Add(sessionTTL()),
 	}
 	store.Store(s.ID, s)
 	return s
@@ -75,7 +99,7 @@ func LookupSession(id string) (Session, LookupResult) {
 	s := v.(Session)
 	if time.Now().After(s.ExpiresAt) {
 		store.Delete(id)
-		return Session{}, SessionExpired
+		return s, SessionExpired
 	}
 	return s, SessionFound
 }
@@ -105,7 +129,7 @@ func SessionAuth() gin.HandlerFunc {
 		case SessionExpired:
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error":   "session_expired",
-				"message": "Your Spotify session has expired. Please reconnect your account.",
+				"message": expiredSessionMessage(sess.Service),
 			})
 		default:
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
@@ -113,6 +137,15 @@ func SessionAuth() gin.HandlerFunc {
 				"message": "X-Session-ID header missing or session does not exist.",
 			})
 		}
+	}
+}
+
+func expiredSessionMessage(service domain.MusicService) string {
+	switch service {
+	case domain.MusicServiceAppleMusic:
+		return "Your Apple Music session has expired. Please reconnect your account."
+	default:
+		return "Your Spotify session has expired. Please reconnect your account."
 	}
 }
 

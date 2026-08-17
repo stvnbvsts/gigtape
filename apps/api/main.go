@@ -2,10 +2,15 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
+	"strconv"
+	"strings"
+	"time"
 
+	"gigtape/adapters/applemusic"
 	"gigtape/adapters/setlistfm"
 	"gigtape/adapters/spotify"
 	"gigtape/api/handlers"
@@ -44,10 +49,33 @@ func main() {
 		Logger:   logger,
 	}
 
-	destFactory := func(sess middleware.Session) domain.PlaylistDestination {
+	destFactory := func(sess middleware.Session) (domain.PlaylistDestination, error) {
+		switch sess.Service {
+		case domain.MusicServiceAppleMusic:
+			token, err := applemusic.DeveloperToken(time.Now(), applemusic.TokenConfig{
+				TeamID:     os.Getenv("APPLE_MUSIC_TEAM_ID"),
+				KeyID:      os.Getenv("APPLE_MUSIC_KEY_ID"),
+				PrivateKey: normalizePrivateKey(os.Getenv("APPLE_MUSIC_PRIVATE_KEY")),
+				TTL:        appleMusicTokenTTL(),
+			})
+			if err != nil {
+				return nil, fmt.Errorf("%w: %v", handlers.ErrAppleMusicUnavailable, err)
+			}
+			client := applemusic.NewClient(nil, token, sess.AppleMusicUserToken, appleMusicStorefront())
+			return applemusic.NewPlaylistDestination(client), nil
+		default:
+			clientID := os.Getenv("SPOTIFY_CLIENT_ID")
+			httpClient := spotify.NewClient(context.Background(), sess.Token, clientID)
+			return spotify.NewPlaylistDestination(httpClient, sess.UserID), nil
+		}
+	}
+	sourceFactory := func(sess middleware.Session) (domain.PlaylistSource, error) {
+		if sess.Service != domain.MusicServiceSpotify {
+			return nil, fmt.Errorf("spotify source requires spotify session")
+		}
 		clientID := os.Getenv("SPOTIFY_CLIENT_ID")
 		httpClient := spotify.NewClient(context.Background(), sess.Token, clientID)
-		return spotify.NewPlaylistDestination(httpClient, sess.UserID)
+		return spotify.NewPlaylistSource(httpClient, sess.UserID), nil
 	}
 
 	router.GET("/", func(c *gin.Context) {
@@ -55,7 +83,7 @@ func main() {
 	})
 
 	setupAuthRoutes(router)
-	setupProtectedRoutes(router, previewUC, eventProvider, destFactory, reporter, logger)
+	setupProtectedRoutes(router, previewUC, eventProvider, destFactory, sourceFactory, reporter, logger)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -70,6 +98,8 @@ func setupAuthRoutes(r *gin.Engine) {
 	auth := r.Group("/auth")
 	auth.GET("/login", handlers.AuthLogin)
 	auth.GET("/callback", handlers.AuthCallback)
+	auth.GET("/apple-music/developer-token", handlers.AppleMusicDeveloperToken)
+	auth.POST("/apple-music/session", handlers.AppleMusicSession)
 }
 
 func setupProtectedRoutes(
@@ -77,6 +107,7 @@ func setupProtectedRoutes(
 	preview *usecases.PreviewSetlist,
 	eventProvider domain.EventProvider,
 	destFactory handlers.DestinationFactory,
+	sourceFactory handlers.SourceFactory,
 	reporter usecases.ErrorReporter,
 	logger *slog.Logger,
 ) {
@@ -90,6 +121,12 @@ func setupProtectedRoutes(
 
 	protected.GET("/events/search", handlers.SearchEvents(eventProvider))
 	protected.POST("/playlists/festival", handlers.CreateFestivalPlaylist(destFactory, reporter, logger))
+	protected.GET("/transfer/spotify/playlists", handlers.ListSpotifyPlaylists(sourceFactory, logger))
+	protected.GET("/transfer/spotify/playlists/:id", handlers.GetSpotifyPlaylist(sourceFactory, logger))
+
+	transfer := r.Group("/transfer")
+	transfer.Use(middleware.RateLimit())
+	transfer.POST("/spotify-to-apple-music", handlers.TransferSpotifyToAppleMusic(sourceFactory, destFactory, reporter, logger))
 }
 
 func newLogger() *slog.Logger {
@@ -109,4 +146,23 @@ func firstNonEmpty(vals ...string) string {
 		}
 	}
 	return ""
+}
+
+func normalizePrivateKey(raw string) string {
+	return strings.ReplaceAll(raw, `\n`, "\n")
+}
+
+func appleMusicStorefront() string {
+	if v := os.Getenv("APPLE_MUSIC_STOREFRONT"); v != "" {
+		return v
+	}
+	return "us"
+}
+
+func appleMusicTokenTTL() time.Duration {
+	minutes, err := strconv.Atoi(os.Getenv("APPLE_MUSIC_TOKEN_TTL_MINUTES"))
+	if err != nil || minutes <= 0 {
+		return 30 * time.Minute
+	}
+	return time.Duration(minutes) * time.Minute
 }

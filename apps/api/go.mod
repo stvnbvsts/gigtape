@@ -3,6 +3,7 @@ module gigtape/api
 go 1.22
 
 require (
+	gigtape/adapters/applemusic v0.0.0
 	gigtape/adapters/setlistfm v0.0.0
 	gigtape/adapters/spotify v0.0.0
 	gigtape/domain v0.0.0
@@ -42,6 +43,7 @@ require (
 )
 
 replace (
+	gigtape/adapters/applemusic => ../../packages/adapters/applemusic
 	gigtape/adapters/setlistfm => ../../packages/adapters/setlistfm
 	gigtape/adapters/spotify => ../../packages/adapters/spotify
 	gigtape/domain => ../../packages/domain

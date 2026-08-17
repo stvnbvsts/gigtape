@@ -55,6 +55,9 @@
   --gt-spotify:     #1DB954;
   --gt-spotify-ink: #06371a;
   --gt-spotify-ring:#14401f;
+  --gt-apple:       #f5f5f7;
+  --gt-apple-ink:   #111111;
+  --gt-apple-ring:  #d24b7a;
 
   /* misc */
   --gt-removed:     #b6a98a;          /* struck-through track title */
@@ -246,9 +249,35 @@
   padding: 15px 24px;
 }
 .gt-btn--spotify:active { box-shadow: 3px 3px 0 var(--gt-spotify-ink); }
+.gt-btn--apple {
+  background: var(--gt-apple);
+  color: var(--gt-apple-ink);
+  box-shadow: 5px 5px 0 var(--gt-apple-ink);
+  text-decoration: none;
+  font-size: 16px;
+  padding: 15px 24px;
+}
+.gt-btn--apple:active { box-shadow: 3px 3px 0 var(--gt-apple-ink); }
 .gt-spotify-dot {
   width: 13px; height: 13px; border-radius: 50%;
   background: var(--gt-spotify); box-shadow: 0 0 0 3px var(--gt-spotify-ring);
+}
+.gt-apple-dot {
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--gt-apple-ring); box-shadow: 0 0 0 3px var(--gt-apple-ink);
+}
+.gt-provider-actions {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+.gt-transfer-grid {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+}
+.gt-transfer-panel {
+  margin: 0;
 }
 
 /* Text link with marker underline */
@@ -493,6 +522,7 @@
 }
 .gt-result-card:hover { background: #fff9ec; }
 .gt-result-card--spotify { border-left-color: var(--gt-spotify); }
+.gt-result-card--apple { border-left-color: var(--gt-apple-ring); }
 .gt-result-card__name { flex: 1; font-family: var(--gt-font-bold); font-weight: 800; font-size: 17px; color: var(--gt-ink); }
 .gt-result-card__meta { display: block; font-family: var(--gt-font-mono); font-size: 11px; color: var(--gt-muted-2); }
 
